@@ -161,10 +161,8 @@ export default function ProductCollection({ products }: { products: Product[] })
               key={product.id}
               id={product.id}
               name={product.name}
-              price={Number.parseFloat(product.price.replace("$", ""))}
-              originalPrice={
-                product.originalPrice ? Number.parseFloat(product.originalPrice.replace("$", "")) : undefined
-              }
+              price={product.price}
+              originalPrice={product.originalPrice}
               discount={product.isOnSale ? 30 : undefined}
               image={product.image}
               fit="REGULAR FIT"

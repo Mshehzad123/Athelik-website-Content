@@ -1,17 +1,23 @@
 export interface Product {
-  id: number
+  id: string
   name: string
   price: string
   originalPrice?: string
   image: string
-  images?: string[]
+  images: string[]
   category: string
-  isOnSale?: boolean
+  subCategory?: string
   description?: string
   fullDescription?: string
-  details?: string[]
-  colors?: { name: string; hex: string }[]
+  isOnSale?: boolean
+  colors?: Array<{
+    name: string;
+    hex?: string;
+    image?: string;
+  }>
   sizes?: string[]
+  variants?: any[]
+  defaultVariant?: string
   rating?: number
   reviewCount?: number
 }

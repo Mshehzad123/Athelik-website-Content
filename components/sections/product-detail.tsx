@@ -7,6 +7,7 @@ import { Heart, Share2, Star, ChevronLeft, ChevronRight, ChevronDown, ChevronUp 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import ProductReviews from "./product-reviews"
 import type { Product } from "@/lib/types"
 
 export default function ProductDetail({ product }: { product: Product }) {
@@ -358,48 +359,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-6">
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="border-b border-gray-600 pb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                              ))}
-                            </div>
-                            <span className="text-sm font-medium text-white">Perfect fit!</span>
-                          </div>
-                          <span className="text-xs text-gray-400">2 weeks ago</span>
-                        </div>
-                        <p className="text-sm text-gray-300 mb-2">
-                          These shorts are amazing! The fabric is soft yet supportive, and they stay in place during my
-                          workouts.
-                        </p>
-                        <p className="text-xs text-gray-400">Sarah T. - Verified Buyer</p>
-                      </div>
-
-                      <div className="border-b border-gray-600 pb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex">
-                              {[...Array(4)].map((_, i) => (
-                                <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                              ))}
-                              <Star className="h-3 w-3 text-gray-500" />
-                            </div>
-                            <span className="text-sm font-medium text-white">Great quality</span>
-                          </div>
-                          <span className="text-xs text-gray-400">1 month ago</span>
-                        </div>
-                        <p className="text-sm text-gray-300 mb-2">
-                          The material is high quality and feels durable. I've washed it several times and it still
-                          looks new.
-                        </p>
-                        <p className="text-xs text-gray-400">Michael R. - Verified Buyer</p>
-                      </div>
-                    </div>
-                  </div>
+                  <ProductReviews product={product} />
                 </CollapsibleContent>
               </Collapsible>
             </div>

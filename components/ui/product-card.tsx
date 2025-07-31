@@ -3,10 +3,10 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
-  id: number
+  id: string
   name: string
-  price: number
-  originalPrice?: number
+  price: string
+  originalPrice?: string
   discount?: number
   image: string
   fit?: string
@@ -33,10 +33,15 @@ export default function ProductCard({
         {/* Product Image */}
         <div className={cn("relative overflow-hidden", tall ? "aspect-[3/5]" : "aspect-[3/4]")}>
           <Image
-            src={image || "/placeholder.svg"}
+            src={image || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"}
             alt={name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              // If image fails to load, replace with placeholder
+              const target = e.target as HTMLImageElement
+              target.src = "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"
+            }}
           />
 
           {/* Fit Label */}
@@ -59,8 +64,8 @@ export default function ProductCard({
 
           {/* Pricing */}
           <div className="flex items-center space-x-2">
-            {originalPrice && <span className="text-sm text-gray-300 line-through">${originalPrice.toFixed(2)}</span>}
-            <span className="text-lg font-bold text-white">${price.toFixed(2)}</span>
+            {originalPrice && <span className="text-sm text-gray-300 line-through">{originalPrice}</span>}
+            <span className="text-lg font-bold text-white">{price}</span>
             {discount && <span className="bg-white text-black px-2 py-0.5 text-xs font-bold">{discount}%</span>}
           </div>
         </div>

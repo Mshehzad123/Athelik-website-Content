@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown } from "lucide-react"
+import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -12,7 +12,67 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
   const [selectedGender, setSelectedGender] = useState("men") // Track selected gender
+  const [user, setUser] = useState(null)
   const pathname = usePathname()
+
+  // Check authentication status and ban status
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    const userData = localStorage.getItem("user")
+    
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData)
+        setUser(user)
+        
+        // Check if user is banned by calling backend
+        checkBanStatus(token, user.email)
+      } catch (error) {
+        console.error("Error parsing user data:", error)
+      }
+    }
+  }, [])
+
+  const checkBanStatus = async (token: string, email: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.status === 403) {
+        // User is banned, force logout
+        console.log("🚫 User is banned, forcing logout...")
+        handleLogout()
+        alert("Your account has been banned by the administrator.")
+      }
+    } catch (error) {
+      console.error("Error checking ban status:", error)
+    }
+  }
+
+  // Periodic ban check every 30 seconds
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(() => {
+        const token = localStorage.getItem("token")
+        if (token) {
+          checkBanStatus(token, user.email)
+        }
+      }, 30000) // Check every 30 seconds
+      
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    setUser(null)
+    window.location.href = "/"
+  }
 
   // Function to check if a path is active
   const isActivePath = (path: string) => {
@@ -48,19 +108,37 @@ export default function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-end h-8 text-xs">
             <div className="hidden lg:flex items-center space-x-6">
-              <Link href="/account" className="text-[#d9d9d9] hover:text-white transition-colors flex items-center">
-                <User className="h-3 w-3 mr-1" />
-                Account
-              </Link>
+              {user ? (
+                <>
+                  <span className="text-[#d9d9d9] flex items-center">
+                    <User className="h-3 w-3 mr-1" />
+                    {user.firstName || user.name || user.email}
+                  </span>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-[#d9d9d9] hover:text-white transition-colors flex items-center"
+                  >
+                    <LogOut className="h-3 w-3 mr-1" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link href="/login" className="text-[#d9d9d9] hover:text-white transition-colors flex items-center">
+                  <User className="h-3 w-3 mr-1" />
+                  Login
+                </Link>
+              )}
               <Link href="/accessibility" className="text-[#d9d9d9] hover:text-white transition-colors">
                 Accessibility Statement
               </Link>
               <Link href="/help" className="text-[#d9d9d9] hover:text-white transition-colors">
                 Help
               </Link>
-              <Link href="/signup" className="text-[#d9d9d9] hover:text-white transition-colors">
-                Email Sign Up
-              </Link>
+              {!user && (
+                <Link href="/signup" className="text-[#d9d9d9] hover:text-white transition-colors">
+                  Email Sign Up
+                </Link>
+              )}
               <Link href="/blog" className="text-[#d9d9d9] hover:text-white transition-colors">
                 Blog
               </Link>
@@ -204,8 +282,10 @@ export default function Header() {
               </Button>
 
               {/* Account */}
-              <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white">
-                <User className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white" asChild>
+                <Link href={user ? "/profile" : "/login"}>
+                  <User className="h-5 w-5" />
+                </Link>
               </Button>
 
               {/* Shopping Bag */}
@@ -342,13 +422,36 @@ export default function Header() {
 
               {/* Mobile Utility Links */}
               <div className="pt-4 border-t border-[#141619] space-y-4">
-                <Link
-                  href="/account"
-                  className="text-[#d9d9d9] hover:text-white transition-colors text-sm flex items-center"
-                >
-                  <User className="h-3 w-3 mr-2" />
-                  Account
-                </Link>
+                {user ? (
+                  <>
+                    <span className="text-[#d9d9d9] text-sm flex items-center">
+                      <User className="h-3 w-3 mr-2" />
+                      {user.firstName || user.name || user.email}
+                    </span>
+                    <Link
+                      href="/profile"
+                      className="text-[#d9d9d9] hover:text-white transition-colors text-sm flex items-center"
+                    >
+                      <User className="h-3 w-3 mr-2" />
+                      Profile
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="text-[#d9d9d9] hover:text-white transition-colors text-sm flex items-center w-full text-left"
+                    >
+                      <LogOut className="h-3 w-3 mr-2" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="text-[#d9d9d9] hover:text-white transition-colors text-sm flex items-center"
+                  >
+                    <User className="h-3 w-3 mr-2" />
+                    Login
+                  </Link>
+                )}
                 <Link href="/help" className="text-[#d9d9d9] hover:text-white transition-colors text-sm">
                   Help
                 </Link>

@@ -1,51 +1,52 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
-const products = [
+interface Category {
+  _id: string
+  name: string
+  description?: string
+  image?: string
+  carouselImage?: string
+  showInCarousel?: boolean
+  carouselOrder?: number
+  isActive: boolean
+  createdAt: string
+}
+
+// Fallback data if API fails
+const fallbackCategories = [
   {
-    id: 1,
-    name: "Performance Leggings",
+    _id: "1",
+    name: "LEGGINGS",
     image: "/placeholder.svg?height=600&width=400",
-    category: "VITAL EVERY TIME",
+    carouselImage: "/placeholder.svg?height=600&width=400",
   },
   {
-    id: 2,
-    name: "Training Jacket",
+    _id: "2", 
+    name: "T-SHIRTS",
     image: "/placeholder.svg?height=600&width=400",
-    category: "HOODIES & JACKETS",
+    carouselImage: "/placeholder.svg?height=600&width=400",
   },
   {
-    id: 3,
-    name: "Crop Top Set",
+    _id: "3",
+    name: "NEW ARRIVAL", 
     image: "/placeholder.svg?height=600&width=400",
-    category: "LEGGINGS",
+    carouselImage: "/placeholder.svg?height=600&width=400",
   },
   {
-    id: 4,
-    name: "Athletic Wear",
-    image: "/placeholder.svg?height=600&width=400",
-    category: "T-SHIRTS",
+    _id: "4",
+    name: "SHORTS",
+    image: "/placeholder.svg?height=600&width=400", 
+    carouselImage: "/placeholder.svg?height=600&width=400",
   },
   {
-    id: 5,
-    name: "Oversized Tee",
+    _id: "5",
+    name: "YOGA WEAR",
     image: "/placeholder.svg?height=600&width=400",
-    category: "NEW ARRIVAL",
-  },
-  {
-    id: 6,
-    name: "Sport Shorts",
-    image: "/placeholder.svg?height=600&width=400",
-    category: "SHORTS",
-  },
-  {
-    id: 7,
-    name: "Yoga Set",
-    image: "/placeholder.svg?height=600&width=400",
-    category: "YOGA WEAR",
+    carouselImage: "/placeholder.svg?height=600&width=400",
   },
 ]
 
@@ -53,6 +54,29 @@ export default function ProductCarousel() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
+  const [categories, setCategories] = useState<Category[]>(fallbackCategories)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/categories/public/carousel')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data && data.data.length > 0) {
+          setCategories(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching carousel categories:', error)
+      // Use fallback data if API fails
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const checkScrollButtons = () => {
     if (scrollContainerRef.current) {
@@ -129,12 +153,12 @@ export default function ProductCarousel() {
             msOverflowStyle: "none",
           }}
         >
-          {products.map((product) => (
-            <div key={product.id} className="flex-shrink-0 w-64 group cursor-pointer">
+          {categories.map((category) => (
+            <div key={category._id} className="flex-shrink-0 w-64 group cursor-pointer">
               <div className="relative overflow-hidden bg-white p-1 shadow-lg hover:shadow-xl transition-all duration-300">
                 <Image
-                  src={product.image || "/placeholder.svg"}
-                  alt={product.name}
+                  src={category.carouselImage || category.image || "/placeholder.svg"}
+                  alt={category.name}
                   width={256}
                   height={400}
                   className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
@@ -142,9 +166,9 @@ export default function ProductCarousel() {
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
               </div>
 
-              {/* Product Category Label */}
+              {/* Category Label */}
               <div className="mt-4 text-center">
-                <p className="text-white text-sm font-medium uppercase tracking-wide">{product.category}</p>
+                <p className="text-white text-sm font-medium uppercase tracking-wide">{category.name}</p>
               </div>
             </div>
           ))}
