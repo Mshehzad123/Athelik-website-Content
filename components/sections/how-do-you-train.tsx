@@ -3,7 +3,18 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { getAllProducts, type Product } from "@/lib/api"
+
+interface Category {
+  _id: string
+  name: string
+  description?: string
+  image?: string
+  carouselImage?: string
+  discountPercentage?: number
+  displaySection?: string
+  sectionOrder?: number
+  isActive: boolean
+}
 
 const trainingCategories = [
   {
@@ -33,27 +44,24 @@ const trainingCategories = [
 ]
 
 export default function HowDoYouTrain() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchProducts()
+    fetchCategories()
   }, [])
 
-  const fetchProducts = async () => {
+  const fetchCategories = async () => {
     try {
-      const allProducts = await getAllProducts()
-      // Filter for training/sports products
-      const trainProducts = allProducts.filter(product => 
-        product.category.toLowerCase().includes('sports') || 
-        product.category.toLowerCase().includes('training') ||
-        product.name.toLowerCase().includes('training') ||
-        product.name.toLowerCase().includes('workout') ||
-        product.subCategory?.toLowerCase().includes('training')
-      )
-      setProducts(trainProducts)
+      const response = await fetch('http://localhost:5000/api/categories/public/training')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data && data.data.length > 0) {
+          setCategories(data.data)
+        }
+      }
     } catch (error) {
-      console.error("Failed to fetch training products:", error)
+      console.error("Failed to fetch training categories:", error)
     } finally {
       setLoading(false)
     }
@@ -84,36 +92,29 @@ export default function HowDoYouTrain() {
                 </div>
               </div>
             ))
-          ) : products.length > 0 ? (
-            // Display actual products
-            products.slice(0, 4).map((product, index) => (
-              <div key={product.id} className="group cursor-pointer">
+          ) : categories.length > 0 ? (
+            // Display actual categories
+            categories.slice(0, 4).map((category, index) => (
+              <div key={category._id} className="group cursor-pointer">
                 <div className="relative overflow-hidden rounded-lg mb-6">
                   <Image
-                    src={product.image || "/placeholder.svg?height=600&width=400"}
-                    alt={product.name}
+                    src={category.carouselImage || category.image || "/placeholder.svg?height=600&width=400"}
+                    alt={category.name}
                     width={400}
                     height={600}
                     className="w-full h-[500px] object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
-                  {product.isOnSale && (
+                  {category.discountPercentage && category.discountPercentage > 0 && (
                     <div className="absolute top-4 left-4 bg-[#cbf26c] text-[#212121] px-3 py-1 rounded-md font-bold text-sm">
-                      SALE
+                      {category.discountPercentage}% OFF
                     </div>
                   )}
                 </div>
                 <div className="mb-4">
-                  <h3 className="text-2xl font-bold text-white uppercase tracking-wide text-center">{product.name}</h3>
+                  <h3 className="text-2xl font-bold text-white uppercase tracking-wide text-center">{category.name}</h3>
                   <p className="text-sm text-gray-300 text-center mt-2">
-                    {product.originalPrice ? (
-                      <>
-                        <span className="line-through text-gray-400">{product.originalPrice}</span>{" "}
-                        <span className="text-[#cbf26c]">{product.price}</span>
-                      </>
-                    ) : (
-                      product.price
-                    )}
+                    {category.description || "Premium training gear for your workout."}
                   </p>
                 </div>
                 <div className="flex justify-center">

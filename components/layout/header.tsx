@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
+  const [isSaleOpen, setIsSaleOpen] = useState(false)
   const [selectedGender, setSelectedGender] = useState("men") // Track selected gender
   const [user, setUser] = useState(null)
   const pathname = usePathname()
@@ -250,14 +251,49 @@ export default function Header() {
               </div>
             </div>
 
-            {/* <Link
-              href="/sale"
-              className={`transition-colors font-medium tracking-wide uppercase text-sm ${
-                isActivePath("/sale") ? "text-[#cbf26c]" : "text-white hover:text-[#cbf26c]"
-              }`}
+            {/* Sale with Dropdown */}
+            <div
+              className="relative group"
+              onMouseEnter={() => setIsSaleOpen(true)}
+              onMouseLeave={() => setIsSaleOpen(false)}
             >
-              SALE
-            </Link> */}
+              <button
+                className={`transition-colors font-medium tracking-wide uppercase text-sm ${
+                  isActivePath("/sale") ? "text-[#cbf26c]" : "text-white hover:text-[#cbf26c]"
+                }`}
+              >
+                SALE
+              </button>
+
+              {/* Dropdown Menu */}
+              <div
+                className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 transition-all duration-200 ${
+                  isSaleOpen ? "opacity-100 visible" : "opacity-0 invisible"
+                }`}
+              >
+                <div className="bg-white shadow-lg rounded-md overflow-hidden z-50">
+                  <div className="min-w-[200px]">
+                    {/* Sale Categories */}
+                    <div className="bg-white">
+                      <Link
+                        href="/sale/men"
+                        className="block w-full text-left px-6 py-3 transition-colors font-medium text-[#212121] hover:bg-[#cbf26c] hover:text-[#212121] border-b border-gray-100"
+                        onClick={() => setIsSaleOpen(false)}
+                      >
+                        Men Top Seller
+                      </Link>
+                      <Link
+                        href="/sale/women"
+                        className="block w-full text-left px-6 py-3 transition-colors font-medium text-[#212121] hover:bg-[#cbf26c] hover:text-[#212121]"
+                        onClick={() => setIsSaleOpen(false)}
+                      >
+                        Women Top Seller
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </nav>
 
           {/* Search and Icons */}
@@ -419,15 +455,32 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* <Link
-                href="/sale"
-                className={`transition-colors font-medium tracking-wide uppercase text-sm ${
-                  isActivePath("/sale") ? "text-[#cbf26c]" : "text-white hover:text-[#cbf26c]"
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                SALE
-              </Link> */}
+              {/* Mobile Sale */}
+              <div className="space-y-3">
+                <span
+                  className={`font-medium tracking-wide uppercase text-sm ${
+                    isActivePath("/sale") ? "text-[#cbf26c]" : "text-white"
+                  }`}
+                >
+                  SALE
+                </span>
+                <div className="pl-4 space-y-2">
+                  <Link
+                    href="/sale/men"
+                    className="block text-[#cbf26c] hover:text-white transition-colors text-sm"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Men Top Seller
+                  </Link>
+                  <Link
+                    href="/sale/women"
+                    className="block text-white hover:text-[#cbf26c] transition-colors text-sm"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Women Top Seller
+                  </Link>
+                </div>
+              </div>
 
               {/* Mobile Search */}
               <div className="pt-4">

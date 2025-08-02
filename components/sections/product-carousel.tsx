@@ -12,6 +12,9 @@ interface Category {
   carouselImage?: string
   showInCarousel?: boolean
   carouselOrder?: number
+  discountPercentage?: number
+  displaySection?: string
+  sectionOrder?: number
   isActive: boolean
   createdAt: string
 }
@@ -154,23 +157,28 @@ export default function ProductCarousel() {
           }}
         >
           {categories.map((category) => (
-            <div key={category._id} className="flex-shrink-0 w-64 group cursor-pointer">
-              <div className="relative overflow-hidden bg-white p-1 shadow-lg hover:shadow-xl transition-all duration-300">
-                <Image
-                  src={category.carouselImage || category.image || "/placeholder.svg"}
-                  alt={category.name}
-                  width={256}
-                  height={400}
-                  className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-              </div>
+                          <div key={category._id} className="flex-shrink-0 w-64 group cursor-pointer">
+                <div className="relative overflow-hidden bg-white p-1 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <Image
+                    src={category.carouselImage || category.image || "/placeholder.svg"}
+                    alt={category.name}
+                    width={256}
+                    height={400}
+                    className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                  {category.discountPercentage && category.discountPercentage > 0 && (
+                    <div className="absolute top-4 left-4 bg-[#cbf26c] text-[#212121] px-3 py-1 rounded-md font-bold text-sm">
+                      {category.discountPercentage}% OFF
+                    </div>
+                  )}
+                </div>
 
-              {/* Category Label */}
-              <div className="mt-4 text-center">
-                <p className="text-white text-sm font-medium uppercase tracking-wide">{category.name}</p>
+                {/* Category Label */}
+                <div className="mt-4 text-center">
+                  <p className="text-white text-sm font-medium uppercase tracking-wide">{category.name}</p>
+                </div>
               </div>
-            </div>
           ))}
         </div>
       </div>

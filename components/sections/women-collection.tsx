@@ -2,28 +2,38 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { getAllProducts, type Product } from "@/lib/api"
+
+interface Category {
+  _id: string
+  name: string
+  description?: string
+  image?: string
+  carouselImage?: string
+  discountPercentage?: number
+  displaySection?: string
+  sectionOrder?: number
+  isActive: boolean
+}
 
 export default function WomenCollection() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchProducts()
+    fetchCategories()
   }, [])
 
-  const fetchProducts = async () => {
+  const fetchCategories = async () => {
     try {
-      const allProducts = await getAllProducts()
-      // Filter for women's products (you can adjust this logic based on your needs)
-      const womenProducts = allProducts.filter(product => 
-        product.category.toLowerCase().includes('women') || 
-        product.name.toLowerCase().includes('women') ||
-        product.subCategory?.toLowerCase().includes('women')
-      )
-      setProducts(womenProducts)
+      const response = await fetch('http://localhost:5000/api/categories/public/women')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data && data.data.length > 0) {
+          setCategories(data.data)
+        }
+      }
     } catch (error) {
-      console.error("Failed to fetch women collection products:", error)
+      console.error("Failed to fetch women collection categories:", error)
     } finally {
       setLoading(false)
     }
@@ -68,36 +78,29 @@ export default function WomenCollection() {
                   </div>
                 </div>
               ))
-            ) : products.length > 0 ? (
-              // Display actual products
-              products.slice(0, 4).map((product) => (
-                <div key={product.id} className="group cursor-pointer">
+            ) : categories.length > 0 ? (
+              // Display actual categories
+              categories.slice(0, 4).map((category) => (
+                <div key={category._id} className="group cursor-pointer">
                   <div className="relative overflow-hidden rounded-lg mb-4">
                     <Image
-                      src={product.image || "/placeholder.svg?height=380&width=300"}
-                      alt={product.name}
+                      src={category.carouselImage || category.image || "/placeholder.svg?height=380&width=300"}
+                      alt={category.name}
                       width={300}
                       height={380}
                       className="w-full h-[380px] object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
-                    {product.isOnSale && (
+                    {category.discountPercentage && category.discountPercentage > 0 && (
                       <div className="absolute top-4 left-4 bg-[#cbf26c] text-[#212121] px-3 py-1 rounded-md font-bold text-sm">
-                        SALE
+                        {category.discountPercentage}% OFF
                       </div>
                     )}
                   </div>
                   <div className="text-white">
-                    <h3 className="text-lg font-bold mb-2 uppercase text-[#cbf26c]">{product.name}</h3>
+                    <h3 className="text-lg font-bold mb-2 uppercase text-[#cbf26c]">{category.name}</h3>
                     <p className="text-sm text-gray-300 leading-relaxed">
-                      {product.originalPrice ? (
-                        <>
-                          <span className="line-through text-gray-400">{product.originalPrice}</span>{" "}
-                          <span className="text-[#cbf26c]">{product.price}</span>
-                        </>
-                      ) : (
-                        product.price
-                      )}
+                      {category.description || "Get ready for the ultimate style and performance combo."}
                     </p>
                   </div>
                 </div>
