@@ -1,27 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Trash2, Heart } from "lucide-react"
+import { Trash2, Heart, Package, Percent } from "lucide-react"
 import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
-// Mock cart data
+// Mock cart data - Using exact dashboard bundle products
 const initialCartItems = [
   {
     id: 1,
-    name: "Geo Seamless T-Shirt",
-    price: 36,
+    productId: "688c5422ac0ff78f897e73be", // Dashboard bundle product 1
+    name: "T-Shirts Shirt",
+    price: 16.00,
     image: "/placeholder.svg?height=200&width=150",
     color: "Black/Charcoal",
     size: "L",
     quantity: 1,
     fit: "Slim Fit",
   },
+  {
+    id: 2,
+    productId: "688c546dac0ff78f897e73cb", // Dashboard bundle product 2
+    name: "T-Shirt Shirt",
+    price: 19.00,
+    image: "/placeholder.svg?height=200&width=150",
+    color: "White/Navy",
+    size: "M",
+    quantity: 1,
+    fit: "Regular Fit",
+  },
+  {
+    id: 3,
+    productId: "688c53e0ac0ff78f897e73b3", // Dashboard bundle product 3
+    name: "T-Shirt Shirt",
+    price: 10.00,
+    image: "/placeholder.svg?height=200&width=150",
+    color: "Black/Red",
+    size: "Small",
+    quantity: 1,
+    fit: "Standard",
+  }
 ]
 
 // Recommended products for free shipping
@@ -50,6 +74,88 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState(initialCartItems)
   const [promoCode, setPromoCode] = useState("")
   const [promoApplied, setPromoApplied] = useState(false)
+  const [bundleDiscount, setBundleDiscount] = useState<any>(null)
+  const [shippingInfo, setShippingInfo] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Calculate totals
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  // Calculate bundle discount when cart items change
+  useEffect(() => {
+    const calculateBundleDiscount = async () => {
+      if (cartItems.length === 0) {
+        setBundleDiscount(null)
+        return
+      }
+
+      setLoading(true)
+      try {
+        const response = await fetch('/api/bundles/calculate-discount', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cartItems: cartItems.map(item => ({
+              productId: item.productId,
+              price: item.price,
+              quantity: item.quantity
+            }))
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setBundleDiscount(data)
+        }
+      } catch (error) {
+        console.error('Error calculating bundle discount:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    calculateBundleDiscount()
+  }, [cartItems])
+
+  // Calculate shipping when cart items change
+  useEffect(() => {
+    const calculateShipping = async () => {
+      if (cartItems.length === 0) {
+        setShippingInfo(null)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/shipping/calculate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            subtotal: subtotal,
+            region: 'US'
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setShippingInfo(data)
+        }
+      } catch (error) {
+        console.error('Error calculating shipping:', error)
+        // Fallback to default shipping
+        setShippingInfo({
+          shippingCost: 5,
+          isFreeShipping: false,
+          remainingForFreeShipping: 70
+        })
+      }
+    }
+
+    calculateShipping()
+  }, [cartItems, subtotal])
 
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity < 1) return
@@ -70,12 +176,13 @@ export default function CartPage() {
   }
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const discount = promoApplied ? subtotal * 0.1 : 0
-  const shipping = 5 // Fixed shipping cost
-  const total = subtotal - discount + shipping
-  const freeShippingThreshold = 75
-  const amountForFreeShipping = Math.max(0, freeShippingThreshold - subtotal)
+  const promoDiscount = promoApplied ? subtotal * 0.1 : 0
+  const bundleDiscountAmount = bundleDiscount?.discountAmount || 0
+  const totalDiscount = promoDiscount + bundleDiscountAmount
+  const shipping = shippingInfo?.shippingCost || 5 // Dynamic shipping cost
+  const total = subtotal - totalDiscount + shipping
+  const freeShippingThreshold = shippingInfo?.rule?.freeShippingAt || 75
+  const amountForFreeShipping = shippingInfo?.remainingForFreeShipping || Math.max(0, freeShippingThreshold - subtotal)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -134,23 +241,32 @@ export default function CartPage() {
           <div className="bg-white p-8 lg:p-12">
             <div className="max-w-md mx-auto">
               {/* Free Shipping Progress */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-[#212121]">
-                    You're ${amountForFreeShipping} away from Free Standard Shipping
-                  </span>
+              {shippingInfo && (
+                <div className="mb-8">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-[#212121]">
+                      {shippingInfo.isFreeShipping 
+                        ? "Free Shipping Applied!" 
+                        : `You're $${amountForFreeShipping.toFixed(2)} away from Free Standard Shipping`
+                      }
+                    </span>
+                  </div>
+                  {!shippingInfo.isFreeShipping && (
+                    <>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, (subtotal / freeShippingThreshold) * 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>$0</span>
+                        <span>${freeShippingThreshold}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, (subtotal / freeShippingThreshold) * 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>$0</span>
-                  <span>$75</span>
-                </div>
-              </div>
+              )}
 
               {/* Cart Items */}
               <div className="space-y-6 mb-8">
@@ -209,6 +325,25 @@ export default function CartPage() {
                 ))}
               </div>
 
+              {/* Bundle Discount Alert */}
+              {bundleDiscount?.hasBundleDiscount && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Package className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-800">Bundle Discount Applied!</span>
+                  </div>
+                  <p className="text-sm text-green-700 mb-2">
+                    You've qualified for the "{bundleDiscount.bundle.name}" bundle
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <Percent className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-green-700">
+                      Save ${bundleDiscount.discountAmount.toFixed(2)} ({bundleDiscount.discountPercentage}% off)
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Discount Code */}
               <div className="mb-8">
                 <p className="text-sm font-medium text-[#212121] mb-3">Discount code?</p>
@@ -234,28 +369,45 @@ export default function CartPage() {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal}</span>
+                  <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
+                
+                {bundleDiscount?.hasBundleDiscount && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center space-x-1">
+                      <Package className="h-4 w-4" />
+                      <span>Bundle Discount</span>
+                    </span>
+                    <span>-${bundleDiscount.discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {promoApplied && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount (10%)</span>
+                    <span>-${promoDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Estimated Shipping</span>
-                  <span className="font-medium">${shipping}</span>
+                  <span className="text-gray-600">
+                    {shippingInfo?.isFreeShipping ? "Shipping" : "Estimated Shipping"}
+                  </span>
+                  <span className={`font-medium ${shippingInfo?.isFreeShipping ? 'text-green-600' : ''}`}>
+                    {shippingInfo?.isFreeShipping ? "FREE" : `$${shipping.toFixed(2)}`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipment Promos at the Checkout</span>
                   <span className="font-medium">$0</span>
                 </div>
-                {promoApplied && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount (10%)</span>
-                    <span>-${discount.toFixed(2)}</span>
-                  </div>
-                )}
+                
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold text-[#212121]">Total</span>
                     <div className="text-right">
                       <span className="text-sm text-gray-500 mr-2">USD</span>
-                      <span className="text-xl font-bold text-[#212121]">${total}</span>
+                      <span className="text-xl font-bold text-[#212121]">${total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
