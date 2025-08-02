@@ -281,12 +281,33 @@ export default function Header() {
                 <Heart className="h-5 w-5" />
               </Button>
 
-              {/* Account */}
-              <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white" asChild>
-                <Link href={user ? "/profile" : "/login"}>
-                  <User className="h-5 w-5" />
-                </Link>
-              </Button>
+              {/* User Account */}
+              {user ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-white text-sm hidden md:block">
+                    {user.firstName || user.name || user.email}
+                  </span>
+                  <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white" asChild>
+                    <Link href="/profile">
+                      <User className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="hover:bg-[#141619] text-white"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white" asChild>
+                  <Link href="/login">
+                    <User className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
 
               {/* Shopping Bag */}
               <Button variant="ghost" size="icon" className="relative hover:bg-[#141619] text-white" asChild>
