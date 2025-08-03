@@ -5,6 +5,7 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { useCart } from "@/lib/cart-context";
 
+
 export default function CheckoutPage() {
   const { cartItems, cartTotal } = useCart();
   const [customer, setCustomer] = useState({
@@ -31,13 +32,82 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
+
+
   // Calculate totals based on actual cart items
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = subtotal >= 500 ? 0 : 20; // Free shipping for orders ≥ $500
+  
+  // Shipping calculation states
+  const [shippingInfo, setShippingInfo] = useState<any>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
   
   // Calculate discount
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const total = subtotal + shippingCost - discountAmount;
+  
+  // Calculate shipping when cart items change
+  useEffect(() => {
+    const calculateShipping = async () => {
+      if (cartItems.length === 0) {
+        setShippingInfo(null);
+        return;
+      }
+
+      setShippingLoading(true);
+      try {
+        const response = await fetch('/api/shipping/calculate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            subtotal: subtotal,
+            region: 'US',
+            weight: 0
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setShippingInfo(data);
+        } else {
+          // Fallback to default shipping
+          setShippingInfo({
+            shippingCost: subtotal >= 100 ? 0 : 10,
+            isFreeShipping: subtotal >= 100,
+            remainingForFreeShipping: Math.max(0, 100 - subtotal),
+            rule: {
+              freeShippingAt: 100
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error calculating shipping:', error);
+        // Fallback to default shipping
+        setShippingInfo({
+          shippingCost: subtotal >= 100 ? 0 : 10,
+          isFreeShipping: subtotal >= 100,
+          remainingForFreeShipping: Math.max(0, 100 - subtotal),
+          rule: {
+            freeShippingAt: 100
+          }
+        });
+      } finally {
+        setShippingLoading(false);
+      }
+    };
+
+    calculateShipping();
+  }, [cartItems, subtotal]);
+
+  // Calculate totals like cart page
+  const shipping = shippingInfo?.isFreeShipping ? 0 : (shippingInfo?.shippingCost || 10);
+  const total = subtotal + shipping - discountAmount;
+  const freeShippingThreshold = shippingInfo?.rule?.freeShippingAt || 100;
+  const remainingForFreeShipping = shippingInfo?.remainingForFreeShipping || Math.max(0, freeShippingThreshold - subtotal);
+
+
+
+
 
   // Apply coupon function
   const applyCoupon = async () => {
@@ -97,7 +167,7 @@ export default function CheckoutPage() {
         couponCode: appliedCoupon ? appliedCoupon.coupon.code : null,
         discountAmount: discountAmount,
         subtotal: subtotal,
-        shippingCost: shippingCost,
+        shippingCost: shipping,
         total: total
       };
 
@@ -424,7 +494,9 @@ export default function CheckoutPage() {
             </div>
 
             {/* Right Column - Order Summary */}
-            <div className="bg-white rounded-lg shadow-md p-6 h-fit">
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-6">Order summary</h2>
               
               <div className="space-y-4">
@@ -506,13 +578,17 @@ export default function CheckoutPage() {
                   )}
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span className={shippingCost === 0 ? "text-green-600 font-medium" : ""}>
-                      {shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}
+                    {shippingLoading ? (
+                      <span className="text-gray-500">Calculating...</span>
+                    ) : (
+                      <span className={shipping?.isFreeShipping ? "text-green-600 font-medium" : ""}>
+                        {shipping?.isFreeShipping ? "FREE" : `$${shipping.toFixed(2)}`}
                     </span>
+                    )}
                   </div>
-                  {subtotal < 500 && (
+                    {subtotal < freeShippingThreshold && !shippingLoading && (
                     <div className="text-sm text-gray-600">
-                      Add ${(500 - subtotal).toFixed(2)} more for free shipping!
+                        Add ${remainingForFreeShipping.toFixed(2)} more for free shipping!
                     </div>
                   )}
                   <div className="border-t pt-2">
@@ -528,9 +604,14 @@ export default function CheckoutPage() {
 
                 {/* Shipping Promotion */}
                 <div className="bg-blue-50 p-4 rounded-md">
-                  <p className="text-sm text-blue-800">AED 1 To Get Free Shipping</p>
+                    <p className="text-sm text-blue-800">
+                      Free shipping on orders ${freeShippingThreshold}+
+                    </p>
+                  </div>
                   </div>
               </div>
+
+
             </div>
           </div>
         </div>

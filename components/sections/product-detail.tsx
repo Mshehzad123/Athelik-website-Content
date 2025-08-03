@@ -10,12 +10,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import ProductReviews from "./product-reviews"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 
 export default function ProductDetail({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes && product.sizes.length > 0 ? product.sizes[0] : "M")
   const [selectedColor, setSelectedColor] = useState<string>(product.colors && product.colors.length > 0 ? product.colors[0].name : "Coral")
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const { addToCart } = useCart()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   
   const nextImage = () => {
     if (product.images && product.images.length > 1) {
@@ -112,6 +114,24 @@ export default function ProductDetail({ product }: { product: Product }) {
       // Fallback for browsers that don't support Web Share API
       navigator.clipboard.writeText(window.location.href)
       alert('Link copied to clipboard!')
+    }
+  }
+
+  const handleWishlistToggle = () => {
+    const wishlistItem = {
+      id: product.id || `product-${Math.random()}`,
+      name: product.name,
+      price: parseFloat(product.price.replace(/[^0-9.]/g, '')),
+      image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
+      color: selectedColor,
+      size: selectedSize,
+      fit: "Regular Fit"
+    }
+
+    if (isInWishlist(wishlistItem.id)) {
+      removeFromWishlist(wishlistItem.id)
+    } else {
+      addToWishlist(wishlistItem)
     }
   }
 
@@ -212,8 +232,13 @@ export default function ProductDetail({ product }: { product: Product }) {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700">
-                    <Heart className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`h-8 w-8 text-white hover:bg-gray-700 ${isInWishlist(product.id || `product-${Math.random()}`) ? 'text-red-500' : ''}`}
+                    onClick={handleWishlistToggle}
+                  >
+                    <Heart className={`h-4 w-4 ${isInWishlist(product.id || `product-${Math.random()}`) ? 'fill-current' : ''}`} />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700" onClick={handleShare}>
                     <Share2 className="h-4 w-4" />

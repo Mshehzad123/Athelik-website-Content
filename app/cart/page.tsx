@@ -11,36 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
-
-// Recommended products for free shipping
-const recommendedProducts = [
-  {
-    id: 1,
-    name: "Golden Era Fresh Legacy - Marvelous",
-    price: "$50.00",
-    image: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 2,
-    name: '3" Jogger Shorts - Navy',
-    price: "$55.00",
-    image: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 3,
-    name: "Sweat Tee - Paloma Grey Marl",
-    price: "$48.00",
-    image: "/placeholder.svg?height=400&width=300",
-  },
-]
+import { useWishlist } from "@/lib/wishlist-context"
+import { getAllProducts } from "@/lib/api"
+import type { Product } from "@/lib/types"
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity } = useCart()
+  const { cartItems, removeFromCart, updateQuantity, showNotification, addToCart } = useCart()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const [promoCode, setPromoCode] = useState("")
   const [promoApplied, setPromoApplied] = useState(false)
   const [bundleDiscount, setBundleDiscount] = useState<any>(null)
   const [shippingInfo, setShippingInfo] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  
+  // Dynamic product suggestions states
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -121,6 +107,52 @@ export default function CartPage() {
     calculateShipping()
   }, [cartItems, subtotal])
 
+  // Fetch dynamic product suggestions for free shipping
+  useEffect(() => {
+    const fetchSuggestedProducts = async () => {
+      if (shippingInfo && !shippingInfo.isFreeShipping && shippingInfo.remainingForFreeShipping > 0) {
+        setLoadingSuggestions(true);
+        try {
+          const allProducts = await getAllProducts();
+          
+          // Filter products that are not already in cart
+          const cartProductIds = cartItems.map(item => item.id);
+          const availableProducts = allProducts.filter(product => 
+            !cartProductIds.includes(product.id)
+          );
+
+          // Find products that can help reach free shipping
+          const suggestions = availableProducts
+            .filter(product => {
+              const productPrice = parseFloat(product.price.replace('$', ''));
+              // Allow flexibility based on the remaining amount
+              const flexibility = Math.min(shippingInfo.remainingForFreeShipping * 0.3, 30); // 30% flexibility
+              return productPrice <= shippingInfo.remainingForFreeShipping + flexibility;
+            })
+            .sort((a, b) => {
+              const priceA = parseFloat(a.price.replace('$', ''));
+              const priceB = parseFloat(b.price.replace('$', ''));
+              // Prioritize products that get closest to free shipping threshold
+              const diffA = Math.abs(shippingInfo.remainingForFreeShipping - priceA);
+              const diffB = Math.abs(shippingInfo.remainingForFreeShipping - priceB);
+              return diffA - diffB;
+            })
+            .slice(0, 3); // Show max 3 suggestions
+
+          setSuggestedProducts(suggestions);
+        } catch (error) {
+          console.error('Error fetching suggested products:', error);
+        } finally {
+          setLoadingSuggestions(false);
+        }
+      } else {
+        setSuggestedProducts([]);
+      }
+    };
+
+    fetchSuggestedProducts();
+  }, [cartItems, shippingInfo]);
+
   const applyPromoCode = () => {
     if (promoCode.toLowerCase() === "akhlekt10") {
       setPromoApplied(true)
@@ -129,11 +161,29 @@ export default function CartPage() {
     }
   }
 
+  const handleWishlistToggle = (product: Product | any) => {
+    const wishlistItem = {
+      id: product.id,
+      name: product.name,
+      price: typeof product.price === 'string' ? parseFloat(product.price.replace(/[^0-9.]/g, '')) : product.price,
+      image: product.image,
+      color: product.color || "Default",
+      size: product.size || "M",
+      fit: product.fit || "Regular Fit"
+    }
+
+    if (isInWishlist(wishlistItem.id)) {
+      removeFromWishlist(wishlistItem.id)
+    } else {
+      addToWishlist(wishlistItem)
+    }
+  }
+
   // Calculate totals
   const promoDiscount = promoApplied ? subtotal * 0.1 : 0
   const bundleDiscountAmount = bundleDiscount?.discountAmount || 0
   const totalDiscount = promoDiscount + bundleDiscountAmount
-  const shipping = shippingInfo?.shippingCost || 5 // Dynamic shipping cost
+  const shipping = shippingInfo?.isFreeShipping ? 0 : (shippingInfo?.shippingCost || 5) // Free shipping = 0
   const total = subtotal - totalDiscount + shipping
   const freeShippingThreshold = shippingInfo?.rule?.freeShippingAt || 75
   const amountForFreeShipping = shippingInfo?.remainingForFreeShipping || Math.max(0, freeShippingThreshold - subtotal)
@@ -152,30 +202,85 @@ export default function CartPage() {
                   AED {amountForFreeShipping} MORE TO GET FREE SHIPPING
                 </h2>
 
-                {/* Recommended Products Grid */}
+                {/* Dynamic Product Suggestions Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {recommendedProducts.map((product) => (
-                    <div key={product.id} className="group cursor-pointer">
-                      <div className="relative bg-white rounded-lg overflow-hidden mb-4">
-                        <div className="aspect-[3/4] relative">
-                          <Image
-                            src={product.image || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          {/* Heart Icon */}
-                          <button className="absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                            <Heart className="h-4 w-4 text-gray-600" />
-                          </button>
+                  {loadingSuggestions ? (
+                    // Loading state
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="group">
+                        <div className="relative bg-white rounded-lg overflow-hidden mb-4">
+                          <div className="aspect-[3/4] relative bg-gray-200 animate-pulse">
+                            <div className="absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center">
+                              <Heart className="h-4 w-4 text-gray-400" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-medium text-white">{product.name}</h3>
-                        <p className="text-lg font-bold text-white">{product.price}</p>
+                    ))
+                  ) : suggestedProducts.length > 0 ? (
+                    // Dynamic suggestions
+                    suggestedProducts.map((product) => (
+                      <div key={product.id} className="group cursor-pointer">
+                        <div className="relative bg-white rounded-lg overflow-hidden mb-4">
+                          <div className="aspect-[3/4] relative">
+                            <Image
+                              src={product.image || "/placeholder.svg"}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {/* Heart Icon */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleWishlistToggle(product);
+                              }}
+                              className={`absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors ${
+                                isInWishlist(product.id) ? 'text-red-500' : 'text-gray-600'
+                              }`}
+                            >
+                              <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                            </button>
+                            {/* Add to Cart Button */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const productPrice = parseFloat(product.price.replace('$', ''));
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: productPrice,
+                                  image: product.image,
+                                  quantity: 1,
+                                  fit: "REGULAR FIT",
+                                  color: "Default",
+                                  size: "M"
+                                });
+                                showNotification(`${product.name} added to cart!`);
+                              }}
+                              className="absolute bottom-3 left-3 right-3 bg-[#cbf26c] text-[#212121] py-2 px-4 rounded-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            >
+                              Add to Cart
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-medium text-white">{product.name}</h3>
+                          <p className="text-lg font-bold text-white">{product.price}</p>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    // No suggestions available
+                    <div className="col-span-3 text-center py-8">
+                      <p className="text-white text-lg">Free shipping achieved! 🎉</p>
+                      <p className="text-gray-400 text-sm mt-2">No additional products needed</p>
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Shop Now Button */}
@@ -222,6 +327,20 @@ export default function CartPage() {
                 </div>
               )}
 
+              {/* Cart Items Summary */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Items in cart</span>
+                  <span className="text-sm font-medium text-gray-600">{cartItems.length} items</span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-sm text-gray-600">Total quantity</span>
+                  <span className="text-sm font-medium text-gray-600">
+                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)} pieces
+                  </span>
+                </div>
+              </div>
+
               {/* Cart Items */}
               <div className="space-y-6 mb-8">
                 {cartItems.map((item) => (
@@ -244,14 +363,22 @@ export default function CartPage() {
                       <p className="text-sm text-gray-600">
                         {item.color} | {item.size}
                       </p>
-                      <p className="font-bold text-[#212121]">${item.price.toFixed(2)}</p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500">${item.price.toFixed(2)} each</p>
+                        <p className="font-bold text-[#212121]">${(item.price * item.quantity).toFixed(2)} total</p>
+                      </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex flex-col items-end space-y-2">
                       <div className="flex items-center space-x-2">
-                        <button className="text-gray-400 hover:text-red-500">
-                          <Heart className="h-4 w-4" />
+                        <button 
+                          onClick={() => handleWishlistToggle(item)}
+                          className={`hover:text-red-500 ${
+                            isInWishlist(item.id) ? 'text-red-500' : 'text-gray-400'
+                          }`}
+                        >
+                          <Heart className={`h-4 w-4 ${isInWishlist(item.id) ? 'fill-current' : ''}`} />
                         </button>
                         <button className="text-gray-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="h-4 w-4" />
@@ -261,10 +388,16 @@ export default function CartPage() {
                       {/* Quantity Selector */}
                       <Select
                         value={item.quantity.toString()}
-                        onValueChange={(value) => updateQuantity(item.id, Number.parseInt(value))}
+                        onValueChange={(value) => {
+                          const newQuantity = Number.parseInt(value);
+                          updateQuantity(item.id, newQuantity);
+                          showNotification(`${item.name} quantity updated to ${newQuantity}`);
+                        }}
                       >
                         <SelectTrigger className="w-20 h-8 text-sm">
-                          <SelectValue />
+                          <SelectValue>
+                            Qty: {item.quantity}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
@@ -351,10 +484,7 @@ export default function CartPage() {
                     {shippingInfo?.isFreeShipping ? "FREE" : `$${shipping.toFixed(2)}`}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipment Promos at the Checkout</span>
-                  <span className="font-medium">$0</span>
-                </div>
+
                 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
