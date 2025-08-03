@@ -10,43 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-
-// Mock cart data - Using exact dashboard bundle products
-const initialCartItems = [
-  {
-    id: 1,
-    productId: "688c5422ac0ff78f897e73be", // Dashboard bundle product 1
-    name: "T-Shirts Shirt",
-    price: 16.00,
-    image: "/placeholder.svg?height=200&width=150",
-    color: "Black/Charcoal",
-    size: "L",
-    quantity: 1,
-    fit: "Slim Fit",
-  },
-  {
-    id: 2,
-    productId: "688c546dac0ff78f897e73cb", // Dashboard bundle product 2
-    name: "T-Shirt Shirt",
-    price: 19.00,
-    image: "/placeholder.svg?height=200&width=150",
-    color: "White/Navy",
-    size: "M",
-    quantity: 1,
-    fit: "Regular Fit",
-  },
-  {
-    id: 3,
-    productId: "688c53e0ac0ff78f897e73b3", // Dashboard bundle product 3
-    name: "T-Shirt Shirt",
-    price: 10.00,
-    image: "/placeholder.svg?height=200&width=150",
-    color: "Black/Red",
-    size: "Small",
-    quantity: 1,
-    fit: "Standard",
-  }
-]
+import { useCart } from "@/lib/cart-context"
 
 // Recommended products for free shipping
 const recommendedProducts = [
@@ -71,7 +35,7 @@ const recommendedProducts = [
 ]
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(initialCartItems)
+  const { cartItems, removeFromCart, updateQuantity } = useCart()
   const [promoCode, setPromoCode] = useState("")
   const [promoApplied, setPromoApplied] = useState(false)
   const [bundleDiscount, setBundleDiscount] = useState<any>(null)
@@ -156,16 +120,6 @@ export default function CartPage() {
 
     calculateShipping()
   }, [cartItems, subtotal])
-
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity < 1) return
-
-    setCartItems((items) => items.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
-  }
-
-  const removeItem = (id: number) => {
-    setCartItems((items) => items.filter((item) => item.id !== id))
-  }
 
   const applyPromoCode = () => {
     if (promoCode.toLowerCase() === "akhlekt10") {
@@ -299,7 +253,7 @@ export default function CartPage() {
                         <button className="text-gray-400 hover:text-red-500">
                           <Heart className="h-4 w-4" />
                         </button>
-                        <button className="text-gray-400 hover:text-red-500" onClick={() => removeItem(item.id)}>
+                        <button className="text-gray-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

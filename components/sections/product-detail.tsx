@@ -9,11 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import ProductReviews from "./product-reviews"
 import type { Product } from "@/lib/types"
+import { useCart } from "@/lib/cart-context"
 
 export default function ProductDetail({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes && product.sizes.length > 0 ? product.sizes[0] : "M")
   const [selectedColor, setSelectedColor] = useState<string>(product.colors && product.colors.length > 0 ? product.colors[0].name : "Coral")
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const { addToCart } = useCart()
   
   const nextImage = () => {
     if (product.images && product.images.length > 1) {
@@ -277,11 +279,20 @@ export default function ProductDetail({ product }: { product: Product }) {
 
               {/* Add to Cart */}
               <Button
-                asChild
                 size="lg"
                 className="w-full bg-white text-[#212121] hover:bg-gray-100 font-semibold py-4 rounded-md transition-all duration-300"
+                onClick={() => addToCart({
+                  id: product.id || `product-${Math.random()}`,
+                  name: product.name,
+                  price: parseFloat(product.price.replace(/[^0-9.]/g, '')),
+                  image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
+                  color: selectedColor,
+                  size: selectedSize,
+                  quantity: 1,
+                  fit: "Regular Fit"
+                })}
               >
-                <Link href="/cart">ADD TO CART</Link>
+                ADD TO CART
               </Button>
 
               {/* Shop the Look */}

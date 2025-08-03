@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { useCart } from "@/lib/cart-context";
 
 export default function CheckoutPage() {
+  const { cartItems, cartTotal } = useCart();
   const [customer, setCustomer] = useState({
     name: "",
     email: "",
@@ -21,8 +23,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   
   // Coupon states
   const [couponCode, setCouponCode] = useState("");
@@ -30,46 +31,7 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
-  // Fetch products from API
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/public/products/public/all");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data.length > 0) {
-            setProducts(data.data);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  // Use first 2 products from API, or fallback to mock data
-  const cartItems = products.length >= 2 ? [
-    { 
-      productId: products[0].id, 
-      productName: products[0].name, 
-      quantity: 2, 
-      price: parseFloat(products[0].price.replace('$', '')) 
-    },
-    { 
-      productId: products[1].id, 
-      productName: products[1].name, 
-      quantity: 1, 
-      price: parseFloat(products[1].price.replace('$', '')) 
-    }
-  ] : [
-    { productId: "6889b4b627f15c1b15c5b380", productName: "Essential Pro Shorts", quantity: 2, price: 23.00 },
-    { productId: "6889b4b627f15c1b15c5b381", productName: "Training Shorts", quantity: 1, price: 35.00 },
-  ];
-
+  // Calculate totals based on actual cart items
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingCost = subtotal >= 500 ? 0 : 20; // Free shipping for orders ≥ $500
   
@@ -161,6 +123,24 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Show empty cart message if no items
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-600 mb-4">Your cart is empty</h2>
+          <p className="text-gray-600 mb-6">Add some products to your cart before checkout.</p>
+          <a 
+            href="/sale/men" 
+            className="bg-black text-white py-3 px-6 rounded-md font-medium hover:bg-gray-800"
+          >
+            Continue Shopping
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (orderSuccess) {
     return (
@@ -451,9 +431,18 @@ export default function CheckoutPage() {
                 {/* Products */}
                 {cartItems.map((item, index) => (
                   <div key={index} className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-gray-200 rounded"></div>
+                    <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div className="flex-1">
-                      <p className="font-medium">{item.productName}</p>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {item.fit} • {item.color} • {item.size}
+                      </p>
                       <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                     </div>
                     <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
