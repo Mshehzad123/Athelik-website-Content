@@ -237,7 +237,7 @@ export default function CategoriesGrid({ selectedGender }: CategoriesGridProps) 
 
                 {/* Top Right - Tall Card */}
                 {filteredProducts[2] && (
-                  <div className="lg:col-span-1">
+                  <div className="lg:col-span-1 lg:row-span-2">
                     <ProductCard
                       key={filteredProducts[2].id}
                       id={filteredProducts[2].id}
@@ -248,47 +248,49 @@ export default function CategoriesGrid({ selectedGender }: CategoriesGridProps) 
                       image={filteredProducts[2].image}
                       fit="ATHLETIC FIT"
                       className="h-full"
+                      tall={true}
                     />
                   </div>
                 )}
               </div>
 
-              {/* Second Grid - 2x2 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                {/* Bottom Left */}
-                {filteredProducts[3] && (
-                  <div className="lg:col-span-1">
-                    <ProductCard
-                      key={filteredProducts[3].id}
-                      id={filteredProducts[3].id}
-                      name={filteredProducts[3].name}
-                      price={filteredProducts[3].price}
-                      originalPrice={filteredProducts[3].originalPrice}
-                      discount={filteredProducts[3].discountPercentage}
-                      image={filteredProducts[3].image}
-                      fit="SLIM FIT"
-                      className="h-full"
-                    />
-                  </div>
-                )}
+              {/* All Remaining Products - Dynamic Grid Rows */}
+              {(() => {
+                const remainingProducts = filteredProducts.slice(3);
+                const rows = [];
+                
+                for (let i = 0; i < remainingProducts.length; i += 4) {
+                  const rowProducts = remainingProducts.slice(i, i + 4);
+                  rows.push(
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 mb-12">
+                      {rowProducts.map((product, index) => (
+                        <ProductCard
+                          key={product.id}
+                          id={product.id}
+                          name={product.name}
+                          price={product.price}
+                          originalPrice={product.originalPrice}
+                          discount={product.discountPercentage}
+                          image={product.image}
+                          fit="REGULAR FIT"
+                          className="h-full"
+                        />
+                      ))}
+                    </div>
+                  );
+                }
+                
+                return rows;
+              })()}
 
-                {/* Bottom Right */}
-                {filteredProducts[4] && (
-                  <div className="lg:col-span-1">
-                    <ProductCard
-                      key={filteredProducts[4].id}
-                      id={filteredProducts[4].id}
-                      name={filteredProducts[4].name}
-                      price={filteredProducts[4].price}
-                      originalPrice={filteredProducts[4].originalPrice}
-                      discount={filteredProducts[4].discountPercentage}
-                      image={filteredProducts[4].image}
-                      fit="OVERSIZED FIT"
-                      className="h-full"
-                    />
-                  </div>
-                )}
-              </div>
+              {/* Load More Section - Only show if there are more products */}
+              {filteredProducts.length > 15 && (
+                <div className="text-center">
+                  <Button className="bg-[#cbf26c] text-[#212121] hover:bg-[#9fcc3b] font-semibold px-8 py-3 text-sm uppercase tracking-wide rounded-md">
+                    LOAD MORE PRODUCTS
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
