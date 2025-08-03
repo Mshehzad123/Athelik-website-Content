@@ -1,132 +1,107 @@
 import type { Product } from "./types"
 
-// Fallback product data when backend is not available
-const fallbackProducts: Product[] = [
+// Mock products data for fallback
+const mockProducts: Product[] = [
   {
     id: "1",
-    name: "Essential Pro 7 Inch Shorts - Coral",
-    price: "$23.00",
-    originalPrice: "$46.00",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=600&fit=crop",
-    ],
-    category: "Men",
+    name: "Performance Tank Top",
+    price: "$45",
+    originalPrice: "$60",
+    image: "/placeholder.svg?height=400&width=300",
+    images: ["/placeholder.svg?height=400&width=300"],
+    category: "Women",
+    subCategory: "Tops",
+    description: "High-performance tank top for active women",
     isOnSale: true,
-    description: "Premium athletic shorts designed for performance and comfort during your most intense workouts.",
-    fullDescription:
-      "The Essential Pro 7 Inch Shorts are engineered for the modern athlete. Featuring moisture-wicking technology, four-way stretch fabric, and a comfortable 7-inch inseam, these shorts provide the perfect balance of coverage and mobility. The coral colorway adds a vibrant touch to your workout wardrobe.",
     colors: [
-      { name: "Coral", hex: "#FF6B6B" },
-      { name: "Red", hex: "#FF4444" },
-      { name: "Pink", hex: "#FF69B4" },
-      { name: "Navy", hex: "#1a237e" },
-      { name: "Light Pink", hex: "#FFB6C1" },
-      { name: "Cream", hex: "#F5F5DC" },
       { name: "Black", hex: "#000000" },
+      { name: "Navy", hex: "#000080" }
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    rating: 4.8,
-    reviewCount: 507,
+    sizes: ["XS", "S", "M", "L", "XL"],
+    variants: [],
+    defaultVariant: "variant-1"
   },
   {
     id: "2",
     name: "Training Shorts",
     price: "$35",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
+    originalPrice: "$50",
+    image: "/placeholder.svg?height=400&width=300",
+    images: ["/placeholder.svg?height=400&width=300"],
     category: "Men",
-    description: "Comfortable, flexible shorts perfect for any training session.",
+    subCategory: "Shorts",
+    description: "Comfortable training shorts for men",
+    isOnSale: true,
+    colors: [
+      { name: "Gray", hex: "#808080" },
+      { name: "Black", hex: "#000000" }
+    ],
+    sizes: ["S", "M", "L", "XL"],
+    variants: [],
+    defaultVariant: "variant-2"
   },
   {
     id: "3",
     name: "Compression Leggings",
     price: "$55",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
+    image: "/placeholder.svg?height=400&width=300",
+    images: ["/placeholder.svg?height=400&width=300"],
     category: "Women",
-    description: "High-waisted compression leggings that support your muscles during workouts.",
+    subCategory: "Bottoms",
+    description: "High-performance compression leggings",
+    isOnSale: false,
+    colors: [
+      { name: "Black", hex: "#000000" },
+      { name: "Navy", hex: "#000080" }
+    ],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    variants: [],
+    defaultVariant: "variant-3"
   },
   {
     id: "4",
     name: "Athletic Hoodie",
     price: "$75",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
+    image: "/placeholder.svg?height=400&width=300",
+    images: ["/placeholder.svg?height=400&width=300"],
     category: "Unisex",
-    description: "Versatile hoodie that keeps you warm before and after your workout.",
-  },
-  {
-    id: "5",
-    name: "Essential Training Tee",
-    price: "$29",
-    originalPrice: "$39",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
-    isOnSale: true,
-    category: "Men",
-    description: "Classic training tee made from soft, breathable cotton blend.",
-  },
-  {
-    id: "6",
-    name: "High-Waist Leggings",
-    price: "$65",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
-    category: "Women",
-    description: "Supportive high-waist leggings with pocket for your essentials.",
-  },
-  {
-    id: "7",
-    name: "Performance Polo",
-    price: "$55",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
-    category: "Men",
-    description: "Sleek, moisture-wicking polo that transitions from the gym to casual wear.",
-  },
-  {
-    id: "8",
-    name: "Sports Bra Set",
-    price: "$45",
-    originalPrice: "$60",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-    images: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"],
-    isOnSale: true,
-    category: "Women",
-    description: "Medium-support sports bra with matching leggings for a coordinated look.",
-  },
+    subCategory: "Outerwear",
+    description: "Comfortable athletic hoodie for all",
+    isOnSale: false,
+    colors: [
+      { name: "Gray", hex: "#808080" },
+      { name: "Black", hex: "#000000" }
+    ],
+    sizes: ["S", "M", "L", "XL"],
+    variants: [],
+    defaultVariant: "variant-4"
+  }
 ]
 
-// Get a product by ID
-export function getProductById(id: string): Product | undefined {
-  return fallbackProducts.find((product) => product.id === id)
-}
-
-// Get related products (same category, excluding current product)
-export function getRelatedProducts(currentProductId: string, category: string): Product[] {
-  return fallbackProducts.filter((product) => product.id !== currentProductId && product.category === category).slice(0, 4)
-}
-
-// Get all products (fallback)
+// Get all products (fallback function)
 export function getAllProducts(): Product[] {
-  return fallbackProducts
+  return mockProducts
 }
 
-// Get products by category (fallback)
+// Get products by category
 export function getProductsByCategory(category: string): Product[] {
-  return fallbackProducts.filter((product) => product.category === category)
+  return mockProducts.filter(product => 
+    product.category.toLowerCase() === category.toLowerCase() ||
+    product.subCategory?.toLowerCase() === category.toLowerCase()
+  )
 }
 
-// Get featured products (fallback)
+// Get featured products
 export function getFeaturedProducts(): Product[] {
-  return fallbackProducts.slice(0, 4)
+  return mockProducts.slice(0, 4)
 }
 
-// Get sale products (fallback)
+// Get sale products
 export function getSaleProducts(): Product[] {
-  return fallbackProducts.filter((product) => product.isOnSale)
+  return mockProducts.filter(product => product.isOnSale)
 }
+
+// Get product by ID
+export function getProductById(id: string): Product | null {
+  return mockProducts.find(product => product.id === id) || null
+} 

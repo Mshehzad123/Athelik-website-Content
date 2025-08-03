@@ -1,12 +1,12 @@
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
-import { getRelatedProducts } from "@/lib/products"
+import { getRelatedProducts } from "@/lib/api"
 
-export default function RelatedProducts({
+export default async function RelatedProducts({
   currentProductId,
   category,
-}: { currentProductId: number; category: string }) {
-  const relatedProducts = getRelatedProducts(currentProductId, category)
+}: { currentProductId: string; category: string }) {
+  const relatedProducts = await getRelatedProducts(currentProductId, category)
 
   return (
     <section className="py-16 bg-[#fafafa]">

@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 interface Category {
@@ -19,46 +21,23 @@ interface Category {
   createdAt: string
 }
 
-// Fallback data if API fails
-const fallbackCategories = [
-  {
-    _id: "1",
-    name: "LEGGINGS",
-    image: "/placeholder.svg?height=600&width=400",
-    carouselImage: "/placeholder.svg?height=600&width=400",
-  },
-  {
-    _id: "2", 
-    name: "T-SHIRTS",
-    image: "/placeholder.svg?height=600&width=400",
-    carouselImage: "/placeholder.svg?height=600&width=400",
-  },
-  {
-    _id: "3",
-    name: "NEW ARRIVAL", 
-    image: "/placeholder.svg?height=600&width=400",
-    carouselImage: "/placeholder.svg?height=600&width=400",
-  },
-  {
-    _id: "4",
-    name: "SHORTS",
-    image: "/placeholder.svg?height=600&width=400", 
-    carouselImage: "/placeholder.svg?height=600&width=400",
-  },
-  {
-    _id: "5",
-    name: "YOGA WEAR",
-    image: "/placeholder.svg?height=600&width=400",
-    carouselImage: "/placeholder.svg?height=600&width=400",
-  },
-]
+interface SubCategory {
+  _id: string
+  name: string
+  category: string
+  description?: string
+  image?: string
+  isActive: boolean
+  createdAt: string
+}
 
 export default function ProductCarousel() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
-  const [categories, setCategories] = useState<Category[]>(fallbackCategories)
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     fetchCategories()
@@ -69,15 +48,61 @@ export default function ProductCarousel() {
       const response = await fetch('http://localhost:5000/api/categories/public/carousel')
       if (response.ok) {
         const data = await response.json()
+        console.log('🎠 Carousel categories response:', data)
         if (data.data && data.data.length > 0) {
           setCategories(data.data)
+          console.log('✅ Set carousel categories:', data.data)
+        } else {
+          console.log('⚠️ No carousel categories found')
+          setCategories([])
         }
+      } else {
+        console.error('❌ Carousel API response not ok:', response.status)
+        setCategories([])
       }
     } catch (error) {
       console.error('Error fetching carousel categories:', error)
-      // Use fallback data if API fails
+      setCategories([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCategoryClick = async (category: Category) => {
+    try {
+      console.log('🎯 Carousel category clicked:', category)
+      
+      // First, try to get sub-categories for this category
+      const subCategoryResponse = await fetch(`http://localhost:5000/api/subcategories/public/category/${category.name}`)
+      
+      if (subCategoryResponse.ok) {
+        const subCategoryData = await subCategoryResponse.json()
+        console.log(`🔍 Found ${subCategoryData.data?.length || 0} sub-categories for ${category.name}`)
+        
+        if (subCategoryData.data && subCategoryData.data.length > 0) {
+          // If sub-categories exist, navigate to the first sub-category page
+          const firstSubCategory = subCategoryData.data[0]
+          const gender = category.displaySection === 'men' ? 'men' : category.displaySection === 'women' ? 'women' : 'all'
+          const url = `/categories/${firstSubCategory.name.toLowerCase().replace(/\s+/g, '-')}?gender=${gender}`
+          console.log(`🔄 Navigating to sub-category: ${url}`)
+          router.push(url)
+          return
+        }
+      }
+      
+      // If no sub-categories found, navigate to the main category page
+      const gender = category.displaySection === 'men' ? 'men' : category.displaySection === 'women' ? 'women' : 'all'
+      const url = `/categories?gender=${gender}`
+      console.log(`🔄 Navigating to category: ${url} for category: ${category.name}`)
+      router.push(url)
+      
+    } catch (error) {
+      console.error('Error handling category click:', error)
+      // Fallback to main category page
+      const gender = category.displaySection === 'men' ? 'men' : category.displaySection === 'women' ? 'women' : 'all'
+      const url = `/categories?gender=${gender}`
+      console.log(`🔄 Fallback navigation to: ${url}`)
+      router.push(url)
     }
   }
 
@@ -109,6 +134,23 @@ export default function ProductCarousel() {
       })
       setTimeout(checkScrollButtons, 300)
     }
+  }
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-[#212121] relative">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide">
+              FEATURED COLLECTIONS MEN & WOMEN
+            </h2>
+          </div>
+          <div className="flex justify-center">
+            <div className="text-white">Loading products...</div>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -157,28 +199,32 @@ export default function ProductCarousel() {
           }}
         >
           {categories.map((category) => (
-                          <div key={category._id} className="flex-shrink-0 w-64 group cursor-pointer">
-                <div className="relative overflow-hidden bg-white p-1 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <Image
-                    src={category.carouselImage || category.image || "/placeholder.svg"}
-                    alt={category.name}
-                    width={256}
-                    height={400}
-                    className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-                  {category.discountPercentage && category.discountPercentage > 0 && (
-                    <div className="absolute top-4 left-4 bg-[#cbf26c] text-[#212121] px-3 py-1 rounded-md font-bold text-sm">
-                      {category.discountPercentage}% OFF
-                    </div>
-                  )}
-                </div>
-
-                {/* Category Label */}
-                <div className="mt-4 text-center">
-                  <p className="text-white text-sm font-medium uppercase tracking-wide">{category.name}</p>
-                </div>
+            <div 
+              key={category._id} 
+              className="flex-shrink-0 w-64 group cursor-pointer"
+              onClick={() => handleCategoryClick(category)}
+            >
+              <div className="relative overflow-hidden bg-white p-1 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Image
+                  src={category.carouselImage || category.image || "/placeholder.svg"}
+                  alt={category.name}
+                  width={256}
+                  height={400}
+                  className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                {category.discountPercentage && category.discountPercentage > 0 && (
+                  <div className="absolute top-4 left-4 bg-[#cbf26c] text-[#212121] px-3 py-1 rounded-md font-bold text-sm">
+                    {category.discountPercentage}% OFF
+                  </div>
+                )}
               </div>
+
+              {/* Category Label */}
+              <div className="mt-4 text-center">
+                <p className="text-white text-sm font-medium uppercase tracking-wide">{category.name}</p>
+              </div>
+            </div>
           ))}
         </div>
       </div>

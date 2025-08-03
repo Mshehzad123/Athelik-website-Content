@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Package, DollarSign, Calendar, User, LogOut } from "lucide-react";
+import Header from "@/components/layout/header";
+import Footer from "@/components/layout/footer";
 
 interface User {
   id: string;
@@ -160,6 +162,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -236,6 +239,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 } 

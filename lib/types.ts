@@ -9,6 +9,11 @@ export interface Product {
   subCategory?: string
   description?: string
   fullDescription?: string
+  discountPercentage?: number
+  purpose?: string
+  features?: string
+  materials?: string
+  care?: string
   isOnSale?: boolean
   colors?: Array<{
     name: string;

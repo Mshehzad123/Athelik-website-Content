@@ -11,9 +11,21 @@ import ProductReviews from "./product-reviews"
 import type { Product } from "@/lib/types"
 
 export default function ProductDetail({ product }: { product: Product }) {
-  const [selectedSize, setSelectedSize] = useState<string>("M")
-  const [selectedColor, setSelectedColor] = useState<string>("Coral")
+  const [selectedSize, setSelectedSize] = useState<string>(product.sizes && product.sizes.length > 0 ? product.sizes[0] : "M")
+  const [selectedColor, setSelectedColor] = useState<string>(product.colors && product.colors.length > 0 ? product.colors[0].name : "Coral")
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  
+  const nextImage = () => {
+    if (product.images && product.images.length > 1) {
+      setActiveImageIndex((prev) => (prev + 1) % product.images.length)
+    }
+  }
+
+  const prevImage = () => {
+    if (product.images && product.images.length > 1) {
+      setActiveImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)
+    }
+  }
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     highlight: true,
     purpose: false,
@@ -22,8 +34,8 @@ export default function ProductDetail({ product }: { product: Product }) {
     reviews: false,
   })
 
-  // Mock color options for the shorts
-  const colorOptions = [
+  // Use dynamic color options from product
+  const colorOptions = product.colors || [
     { name: "Coral", image: "/placeholder.svg?height=80&width=60" },
     { name: "Red", image: "/placeholder.svg?height=80&width=60" },
     { name: "Pink", image: "/placeholder.svg?height=80&width=60" },
@@ -33,7 +45,7 @@ export default function ProductDetail({ product }: { product: Product }) {
     { name: "Black", image: "/placeholder.svg?height=80&width=60" },
   ]
 
-  const sizeOptions = ["S", "M", "L", "XL", "XXL"]
+  const sizeOptions = product.sizes || ["S", "M", "L", "XL", "XXL"]
 
   const shopTheLookItems = [
     {
@@ -83,63 +95,108 @@ export default function ProductDetail({ product }: { product: Product }) {
     }))
   }
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: product.description || `Check out this amazing product: ${product.name}`,
+          url: window.location.href,
+        })
+      } catch (error) {
+        console.log('Error sharing:', error)
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copied to clipboard!')
+    }
+  }
+
   return (
     <div className="bg-white">
       {/* Main Product Section - Now Dark */}
       <section className="py-12 bg-[#212121] text-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Product Images */}
-            <div className="space-y-4">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-800">
-                <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Untitled-GgWFwr4F7jybMbU2H9fGLI21prsna4.png"
-                  alt="Essential Pro 7 Inch Shorts - Coral"
-                  fill
-                  className="object-cover"
-                  priority
-                />
+                          {/* Product Images */}
+              <div className="space-y-4">
+                <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-800 cursor-pointer">
+                  <Image
+                    src={product.images && product.images.length > 0 ? product.images[activeImageIndex] : "/placeholder.svg"}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
 
-                {/* Navigation arrows */}
-                <button className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                  <ChevronLeft className="h-4 w-4 text-black" />
-                </button>
-                <button className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                  <ChevronRight className="h-4 w-4 text-black" />
-                </button>
+                  {/* Navigation arrows */}
+                  {product.images && product.images.length > 1 && (
+                    <>
+                      <button 
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        onClick={prevImage}
+                      >
+                        <ChevronLeft className="h-4 w-4 text-black" />
+                      </button>
+                      <button 
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        onClick={nextImage}
+                      >
+                        <ChevronRight className="h-4 w-4 text-black" />
+                      </button>
+                    </>
+                  )}
 
-                {/* Navigation dots */}
-                <div className="absolute bottom-4 left-4 flex space-x-2">
-                  {[...Array(6)].map((_, index) => (
-                    <div
-                      key={index}
-                      className={`w-2 h-2 rounded-full ${index === 0 ? "bg-[#cbf26c]" : "bg-white/50"}`}
-                    />
-                  ))}
+                  {/* Navigation dots */}
+                  <div className="absolute bottom-4 left-4 flex space-x-2">
+                    {product.images && product.images.length > 0 ? 
+                      product.images.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`w-2 h-2 rounded-full cursor-pointer ${index === activeImageIndex ? "bg-[#cbf26c]" : "bg-white/50"}`}
+                          onClick={() => setActiveImageIndex(index)}
+                        />
+                      )) : 
+                      [...Array(1)].map((_, index) => (
+                        <div
+                          key={index}
+                          className="w-2 h-2 rounded-full bg-[#cbf26c]"
+                        />
+                      ))
+                    }
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Product Info */}
             <div className="space-y-6">
               {/* Sale Badge */}
-              <div className="flex justify-end">
-                <Badge className="bg-white text-[#212121] border border-white font-semibold">50% OFF</Badge>
-              </div>
+              {product.discountPercentage && product.discountPercentage > 0 && (
+                <div className="flex justify-end">
+                  <Badge className="bg-white text-[#212121] border border-white font-semibold">
+                    {product.discountPercentage}% OFF
+                  </Badge>
+                </div>
+              )}
 
               {/* Product Title */}
               <div className="space-y-2">
                 <h1 className="text-2xl lg:text-3xl font-bold text-white uppercase">
-                  ESSENTIAL PRO 7 INCH SHORTS - CORAL
+                  {product.name}
                 </h1>
-                <p className="text-gray-400 uppercase tracking-wide">REGULAR FIT</p>
+                {product.subCategory && (
+                  <p className="text-gray-400 uppercase tracking-wide">{product.subCategory}</p>
+                )}
               </div>
 
               {/* Pricing */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
-                  <span className="text-gray-400 line-through text-lg">$46.00</span>
-                  <span className="text-2xl font-bold text-white">$23.00</span>
+                  {product.originalPrice && (
+                    <span className="text-gray-400 line-through text-lg">{product.originalPrice}</span>
+                  )}
+                  <span className="text-2xl font-bold text-white">{product.price}</span>
                 </div>
                 <p className="text-sm text-gray-300">EARN 507 PACK VIP POINTS</p>
               </div>
@@ -148,7 +205,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center">
-                    <span className="text-sm font-medium text-white">4.8</span>
+                    <span className="text-sm font-medium text-white">{product.rating?.toFixed(1) || "4.8"}</span>
                     <Star className="h-4 w-4 text-white fill-white ml-1" />
                   </div>
                 </div>
@@ -156,7 +213,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700">
                     <Heart className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700" onClick={handleShare}>
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -176,7 +233,19 @@ export default function ProductDetail({ product }: { product: Product }) {
                       }`}
                       onClick={() => setSelectedColor(color.name)}
                     >
-                      <Image src={color.image || "/placeholder.svg"} alt={color.name} fill className="object-cover" />
+                      {color.hex ? (
+                        <div 
+                          className="w-full h-full" 
+                          style={{ backgroundColor: color.hex }}
+                        />
+                      ) : (
+                        <Image 
+                          src={color.image || "/placeholder.svg"} 
+                          alt={color.name} 
+                          fill 
+                          className="object-cover" 
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -265,18 +334,22 @@ export default function ProductDetail({ product }: { product: Product }) {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-6">
                   <div className="space-y-4">
-                    <div className="w-full h-64 bg-[#e8d5d5] rounded-lg overflow-hidden">
-                      <Image
-                        src="/placeholder.svg?height=256&width=400"
-                        alt="Fabric texture"
-                        width={400}
-                        height={256}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-gray-300 text-sm leading-relaxed">
-                      Lightweight woven fabric that is soft against the skin and comfortable during workouts.
-                    </p>
+                    {product.images && product.images.length > 0 && (
+                      <div className="w-full h-64 bg-[#e8d5d5] rounded-lg overflow-hidden">
+                        <Image
+                          src={product.images[0]}
+                          alt={product.name}
+                          width={400}
+                          height={256}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    {product.description && (
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {product.description}
+                      </p>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -285,14 +358,18 @@ export default function ProductDetail({ product }: { product: Product }) {
               <Collapsible open={openSections.purpose} onOpenChange={() => toggleSection("purpose")}>
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-4 border-b border-gray-600 hover:border-gray-500 transition-colors">
                   <span className="text-sm font-medium uppercase tracking-wide">PURPOSE</span>
-                  <ChevronDown className="h-4 w-4" />
+                  {openSections.purpose ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-6">
                   <div className="text-gray-300 text-sm leading-relaxed">
-                    <p>
-                      Designed for high-intensity training, running, and everyday athletic activities. These shorts
-                      provide optimal comfort and performance for all your fitness needs.
-                    </p>
+                    {product.purpose ? (
+                      <p>{product.purpose}</p>
+                    ) : (
+                      <p>
+                        Designed for high-intensity training, running, and everyday athletic activities. These shorts
+                        provide optimal comfort and performance for all your fitness needs.
+                      </p>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -301,17 +378,21 @@ export default function ProductDetail({ product }: { product: Product }) {
               <Collapsible open={openSections.features} onOpenChange={() => toggleSection("features")}>
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-4 border-b border-gray-600 hover:border-gray-500 transition-colors">
                   <span className="text-sm font-medium uppercase tracking-wide">FEATURES & FIT</span>
-                  <ChevronDown className="h-4 w-4" />
+                  {openSections.features ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-6">
                   <div className="text-gray-300 text-sm leading-relaxed space-y-2">
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>7-inch inseam for optimal coverage</li>
-                      <li>Regular fit design</li>
-                      <li>Elastic waistband with drawstring</li>
-                      <li>Secure zip pocket for essentials</li>
-                      <li>Four-way stretch construction</li>
-                    </ul>
+                    {product.features ? (
+                      <div dangerouslySetInnerHTML={{ __html: product.features.replace(/\n/g, '<br/>') }} />
+                    ) : (
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>7-inch inseam for optimal coverage</li>
+                        <li>Regular fit design</li>
+                        <li>Elastic waistband with drawstring</li>
+                        <li>Secure zip pocket for essentials</li>
+                        <li>Four-way stretch construction</li>
+                      </ul>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -320,27 +401,43 @@ export default function ProductDetail({ product }: { product: Product }) {
               <Collapsible open={openSections.materials} onOpenChange={() => toggleSection("materials")}>
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-4 border-b border-gray-600 hover:border-gray-500 transition-colors">
                   <span className="text-sm font-medium uppercase tracking-wide">MATERIALS & CARE</span>
-                  <ChevronDown className="h-4 w-4" />
+                  {openSections.materials ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-6">
                   <div className="text-gray-300 text-sm leading-relaxed space-y-4">
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Materials:</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        <li>88% Polyester, 12% Elastane</li>
-                        <li>Moisture-wicking fabric technology</li>
-                        <li>Anti-odor treatment</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Care Instructions:</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        <li>Machine wash cold with like colors</li>
-                        <li>Do not bleach</li>
-                        <li>Tumble dry low</li>
-                        <li>Do not iron</li>
-                      </ul>
-                    </div>
+                    {product.materials && (
+                      <div>
+                        <h4 className="font-medium text-white mb-2">Materials:</h4>
+                        <div dangerouslySetInnerHTML={{ __html: product.materials.replace(/\n/g, '<br/>') }} />
+                      </div>
+                    )}
+                    {product.care && (
+                      <div>
+                        <h4 className="font-medium text-white mb-2">Care Instructions:</h4>
+                        <div dangerouslySetInnerHTML={{ __html: product.care.replace(/\n/g, '<br/>') }} />
+                      </div>
+                    )}
+                    {!product.materials && !product.care && (
+                      <>
+                        <div>
+                          <h4 className="font-medium text-white mb-2">Materials:</h4>
+                          <ul className="list-disc pl-5 space-y-1">
+                            <li>88% Polyester, 12% Elastane</li>
+                            <li>Moisture-wicking fabric technology</li>
+                            <li>Anti-odor treatment</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-white mb-2">Care Instructions:</h4>
+                          <ul className="list-disc pl-5 space-y-1">
+                            <li>Machine wash cold with like colors</li>
+                            <li>Do not bleach</li>
+                            <li>Tumble dry low</li>
+                            <li>Do not iron</li>
+                          </ul>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -352,11 +449,14 @@ export default function ProductDetail({ product }: { product: Product }) {
                     <span className="text-sm font-medium uppercase tracking-wide">REVIEWS</span>
                     <div className="flex">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                        <Star 
+                          key={i} 
+                          className={`h-3 w-3 ${i < (product.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-400"}`} 
+                        />
                       ))}
                     </div>
                   </div>
-                  <ChevronDown className="h-4 w-4" />
+                  {openSections.reviews ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-6">
                   <ProductReviews product={product} />

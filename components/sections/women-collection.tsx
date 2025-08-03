@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 interface Category {
   _id: string
@@ -15,9 +16,20 @@ interface Category {
   isActive: boolean
 }
 
+interface SubCategory {
+  _id: string
+  name: string
+  category: string
+  description?: string
+  image?: string
+  isActive: boolean
+  createdAt: string
+}
+
 export default function WomenCollection() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     fetchCategories()
@@ -39,6 +51,48 @@ export default function WomenCollection() {
     }
   }
 
+  const handleCategoryClick = async (category: Category) => {
+    try {
+      console.log('🎯 Women collection category clicked:', category)
+      
+      // First, try to get sub-categories for this category
+      const subCategoryResponse = await fetch(`http://localhost:5000/api/subcategories/public/category/${category.name}`)
+      
+      if (subCategoryResponse.ok) {
+        const subCategoryData = await subCategoryResponse.json()
+        console.log(`🔍 Found ${subCategoryData.data?.length || 0} sub-categories for ${category.name}`)
+        
+        if (subCategoryData.data && subCategoryData.data.length > 0) {
+          // If sub-categories exist, navigate to the first sub-category page
+          const firstSubCategory = subCategoryData.data[0]
+          const url = `/categories/${firstSubCategory.name.toLowerCase().replace(/\s+/g, '-')}?gender=women`
+          console.log(`🔄 Navigating to sub-category: ${url}`)
+          router.push(url)
+          return
+        }
+      }
+      
+      // If no sub-categories found, navigate to the main category page
+      const url = `/categories?gender=women`
+      console.log(`🔄 Navigating to category: ${url} for category: ${category.name}`)
+      router.push(url)
+      
+    } catch (error) {
+      console.error('Error handling category click:', error)
+      // Fallback to main category page
+      const url = `/categories?gender=women`
+      console.log(`🔄 Fallback navigation to: ${url}`)
+      router.push(url)
+    }
+  }
+
+  const handleMainImageClick = () => {
+    // Navigate to categories page with women gender parameter
+    const url = `/categories?gender=women`
+    console.log(`🔄 Navigating to: ${url} for women's collection`)
+    router.push(url)
+  }
+
   return (
     <section className="py-20 bg-[#212121]">
       <div className="container mx-auto px-4">
@@ -50,7 +104,10 @@ export default function WomenCollection() {
         {/* Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
           {/* Left Side - Main Image */}
-          <div className="relative group cursor-pointer">
+          <div 
+            className="relative group cursor-pointer"
+            onClick={handleMainImageClick}
+          >
             <div className="relative overflow-hidden rounded-lg">
               <Image
                 src="/images/women-collection-main.jpg"
@@ -81,7 +138,11 @@ export default function WomenCollection() {
             ) : categories.length > 0 ? (
               // Display actual categories
               categories.slice(0, 4).map((category) => (
-                <div key={category._id} className="group cursor-pointer">
+                <div 
+                  key={category._id} 
+                  className="group cursor-pointer"
+                  onClick={() => handleCategoryClick(category)}
+                >
                   <div className="relative overflow-hidden rounded-lg mb-4">
                     <Image
                       src={category.carouselImage || category.image || "/placeholder.svg?height=380&width=300"}

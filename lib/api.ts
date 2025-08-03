@@ -112,17 +112,20 @@ class ApiService {
   // Get all products
   async getProducts(): Promise<Product[]> {
     try {
+      console.log('🔍 Fetching products from API...')
       const response: ApiResponse<Product[]> = await this.request('/public/products/public/all');
-      console.log('API Response:', response);
+      console.log('📦 API Response:', response);
       
-      // If API returns empty data or no success, throw error to use fallback
-      if (!response.success || !response.data || response.data.length === 0) {
-        throw new Error('No products available from API');
+      // Only return products if API is successful and has data
+      if (!response.success || !response.data) {
+        console.log('⚠️ API returned no success or no data')
+        return [];
       }
       
+      console.log(`✅ Found ${response.data.length} products from API`)
       return response.data;
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('❌ Error fetching products:', error);
       // Return empty array if API fails
       return [];
     }

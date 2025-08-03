@@ -8,13 +8,40 @@ import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown, LogOut } from "
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+interface SubCategory {
+  id: string
+  name: string
+  category: string
+}
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
   const [isSaleOpen, setIsSaleOpen] = useState(false)
   const [selectedGender, setSelectedGender] = useState("men") // Track selected gender
   const [user, setUser] = useState(null)
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([])
+  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
+
+  // Fetch sub-categories from backend
+  useEffect(() => {
+    fetchSubCategories()
+  }, [])
+
+  const fetchSubCategories = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/subcategories/public')
+      if (response.ok) {
+        const data = await response.json()
+        setSubCategories(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching sub-categories:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Check authentication status and ban status
   useEffect(() => {
@@ -82,24 +109,34 @@ export default function Header() {
     return false
   }
 
-  // Get categories based on selected gender
-  const getCategories = (gender: string) => {
+  // Get sub-categories based on selected gender
+  const getSubCategories = (gender: string) => {
+    if (loading) return []
+    
+    // Filter sub-categories based on gender
+    const genderSubCategories = subCategories.filter(subCat => {
+      const categoryName = subCat.category.toLowerCase()
     if (gender === "women") {
-      return [
-        { href: "/categories/t-shirts", label: "T-Shirts" },
-        { href: "/categories/leggings", label: "Leggings" },
-        { href: "/categories/shorts", label: "Shorts" },
-        { href: "/categories/tank-tops", label: "Tank Tops" },
-        { href: "/categories/sports-bras", label: "Sports Bras" },
-      ]
-    }
-    return [
-      { href: "/categories/t-shirts", label: "T-Shirts" },
-      { href: "/categories/shorts", label: "Shorts" },
-      { href: "/categories/trousers", label: "Trousers" },
-      { href: "/categories/twinsets", label: "Twinsets" },
-      { href: "/categories/tanks", label: "Tanks" },
-    ]
+        return categoryName === "women"
+      } else {
+        return categoryName === "men"
+      }
+    })
+
+    // Remove duplicates by grouping by name and taking the first occurrence
+    const uniqueSubCategories = genderSubCategories.reduce((acc, subCat) => {
+      if (!acc.find(item => item.name === subCat.name)) {
+        acc.push(subCat)
+      }
+      return acc
+    }, [] as typeof genderSubCategories)
+
+    // Convert to navigation format
+    return uniqueSubCategories.map(subCat => ({
+      href: `/categories/${subCat.name.toLowerCase().replace(/\s+/g, '-')}`,
+      label: subCat.name,
+      id: subCat.id
+    }))
   }
 
   return (
@@ -224,9 +261,9 @@ export default function Header() {
 
                     {/* Right Column - Product Types */}
                     <div className="bg-white border-l border-gray-200">
-                      {getCategories(selectedGender).map((category) => (
+                      {getSubCategories(selectedGender).map((category, index) => (
                         <Link
-                          key={category.href}
+                          key={`${category.label}-${selectedGender}-${index}`}
                           href={`${category.href}?gender=${selectedGender}`}
                           className="block px-6 py-3 text-[#212121] hover:bg-gray-50 transition-colors"
                           onClick={() => setIsCategoriesOpen(false)}
@@ -234,6 +271,11 @@ export default function Header() {
                           {category.label}
                         </Link>
                       ))}
+                      {getSubCategories(selectedGender).length === 0 && (
+                        <div className="px-6 py-3 text-gray-400">
+                          {loading ? "Loading..." : "No sub-categories available"}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -416,41 +458,16 @@ export default function Header() {
                     Women
                   </Link>
                   <div className="pl-4 space-y-2 border-l border-[#141619]">
+                                          {getSubCategories("men").map((category, index) => (
                     <Link
-                      href="/categories/t-shirts"
+                          key={`${category.label}-men-${index}`}
+                        href={`${category.href}?gender=men`}
                       className="block text-[#d9d9d9] hover:text-[#cbf26c] transition-colors text-sm"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      T-Shirts
+                        {category.label}
                     </Link>
-                    <Link
-                      href="/categories/leggings"
-                      className="block text-[#d9d9d9] hover:text-[#cbf26c] transition-colors text-sm"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Leggings
-                    </Link>
-                    <Link
-                      href="/categories/shorts"
-                      className="block text-[#d9d9d9] hover:text-[#cbf26c] transition-colors text-sm"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Shorts
-                    </Link>
-                    <Link
-                      href="/categories/tank-tops"
-                      className="block text-[#d9d9d9] hover:text-[#cbf26c] transition-colors text-sm"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Tank Tops
-                    </Link>
-                    <Link
-                      href="/categories/sports-bras"
-                      className="block text-[#d9d9d9] hover:text-[#cbf26c] transition-colors text-sm"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Sports Bras
-                    </Link>
+                    ))}
                   </div>
                 </div>
               </div>

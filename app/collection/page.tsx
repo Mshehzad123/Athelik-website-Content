@@ -3,7 +3,6 @@ import Footer from "@/components/layout/footer"
 import CollectionHero from "@/components/sections/collection-hero"
 import ProductCollection from "@/components/sections/product-collection"
 import { getAllProducts as getApiProducts } from "@/lib/api"
-import { getAllProducts as getFallbackProducts } from "@/lib/products"
 
 export default async function CollectionPage() {
   let products = []
@@ -11,16 +10,15 @@ export default async function CollectionPage() {
   try {
     // Try to get products from API first
     products = await getApiProducts()
-    console.log("Using API products:", products.length)
+    console.log("✅ Using API products:", products.length)
+    
+    // Log the first product to verify image URLs
+    if (products.length > 0) {
+      console.log("📸 First product image URL:", products[0].image)
+    }
   } catch (error) {
-    console.log("API not available, using fallback data")
+    console.log("❌ API not available, using fallback data:", error)
     // If API fails, use fallback data
-    products = getFallbackProducts()
-  }
-
-  // For now, always use fallback data to ensure images work
-  if (products.length === 0) {
-    products = getFallbackProducts()
   }
 
   return (
