@@ -70,8 +70,6 @@ export default function ProductCarousel() {
 
   const handleCategoryClick = async (category: Category) => {
     try {
-      console.log('🎯 Carousel category clicked:', category)
-      
       // First, try to get sub-categories for this category
       const subCategoryResponse = await fetch(`http://localhost:5000/api/subcategories/public/category/${category.name}`)
       

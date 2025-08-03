@@ -53,8 +53,6 @@ export default function WomenCollection() {
 
   const handleCategoryClick = async (category: Category) => {
     try {
-      console.log('🎯 Women collection category clicked:', category)
-      
       // First, try to get sub-categories for this category
       const subCategoryResponse = await fetch(`http://localhost:5000/api/subcategories/public/category/${category.name}`)
       
@@ -74,7 +72,7 @@ export default function WomenCollection() {
       
       // If no sub-categories found, navigate to the main category page
       const url = `/categories?gender=women`
-      console.log(`🔄 Navigating to category: ${url} for category: ${category.name}`)
+      console.log(`🔄 Navigating to category: ${url} for women's category: ${category.name}`)
       router.push(url)
       
     } catch (error) {

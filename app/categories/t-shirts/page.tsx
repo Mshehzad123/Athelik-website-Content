@@ -24,7 +24,7 @@ function TShirtsContent() {
 
   // Always show the correct sub-category name
   const getSubCategoryName = () => {
-    return "T-Shirts"
+    return "T-Shirts & Tops"
   }
 
   return (

@@ -116,9 +116,9 @@ class ApiService {
       const response: ApiResponse<Product[]> = await this.request('/public/products/public/all');
       console.log('📦 API Response:', response);
       
-      // Only return products if API is successful and has data
-      if (!response.success || !response.data) {
-        console.log('⚠️ API returned no success or no data')
+      // If API returns empty data or no success, throw error to use fallback
+      if (!response.success || !response.data || response.data.length === 0) {
+        console.log('⚠️ No products from API, returning empty array')
         return [];
       }
       
