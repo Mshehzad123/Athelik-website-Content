@@ -53,24 +53,7 @@ export default function MenCollection() {
 
   const handleCategoryClick = async (category: Category) => {
     try {
-      // First, try to get sub-categories for this category
-      const subCategoryResponse = await fetch(`http://localhost:5000/api/subcategories/public/category/${category.name}`)
-      
-      if (subCategoryResponse.ok) {
-        const subCategoryData = await subCategoryResponse.json()
-        console.log(`🔍 Found ${subCategoryData.data?.length || 0} sub-categories for ${category.name}`)
-        
-        if (subCategoryData.data && subCategoryData.data.length > 0) {
-          // If sub-categories exist, navigate to the first sub-category page
-          const firstSubCategory = subCategoryData.data[0]
-          const url = `/categories/${firstSubCategory.name.toLowerCase().replace(/\s+/g, '-')}?gender=men`
-          console.log(`🔄 Navigating to sub-category: ${url}`)
-          router.push(url)
-          return
-        }
-      }
-      
-      // If no sub-categories found, navigate to the main category page
+      // Navigate directly to the main category page for men
       const url = `/categories?gender=men`
       console.log(`🔄 Navigating to category: ${url} for men's category: ${category.name}`)
       router.push(url)

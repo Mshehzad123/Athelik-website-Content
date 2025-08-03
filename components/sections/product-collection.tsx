@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,11 +9,16 @@ import ProductCard from "@/components/ui/product-card"
 import type { Product } from "@/lib/types"
 import { SlidersHorizontal, X } from "lucide-react"
 
-export default function ProductCollection({ products }: { products: Product[] }) {
+export default function ProductCollection({ products, loading = false }: { products: Product[], loading?: boolean }) {
   const [filteredProducts, setFilteredProducts] = useState(products)
   const [sortOption, setSortOption] = useState("featured")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+
+  // Update filtered products when products change
+  useEffect(() => {
+    setFilteredProducts(products)
+  }, [products])
 
   // Get unique categories
   const categories = Array.from(new Set(products.map((product) => product.category)))
@@ -156,30 +161,33 @@ export default function ProductCollection({ products }: { products: Product[] })
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              id={product.id}
-              name={product.name}
-              price={product.price}
-              originalPrice={product.originalPrice}
-              discount={product.isOnSale ? 30 : undefined}
-              image={product.image}
-              fit="REGULAR FIT"
-            />
-          ))}
+          {loading ? (
+            <div className="col-span-full text-center py-16">
+              <p className="text-[#6e6e6e]">Loading products...</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="col-span-full text-center py-16">
+              <h3 className="text-xl font-semibold text-[#212121] mb-2">No products found</h3>
+              <p className="text-[#6e6e6e] mb-6">Try adjusting your filters or browse our full collection.</p>
+              <Button onClick={resetFilters} className="bg-[#212121] text-white hover:bg-black">
+                Reset Filters
+              </Button>
+            </div>
+          ) : (
+            filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                price={product.price}
+                originalPrice={product.originalPrice}
+                discount={product.isOnSale ? 30 : undefined}
+                image={product.image}
+                fit="REGULAR FIT"
+              />
+            ))
+          )}
         </div>
-
-        {/* Empty State */}
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-16">
-            <h3 className="text-xl font-semibold text-[#212121] mb-2">No products found</h3>
-            <p className="text-[#6e6e6e] mb-6">Try adjusting your filters or browse our full collection.</p>
-            <Button onClick={resetFilters} className="bg-[#212121] text-white hover:bg-black">
-              Reset Filters
-            </Button>
-          </div>
-        )}
       </div>
     </section>
   )

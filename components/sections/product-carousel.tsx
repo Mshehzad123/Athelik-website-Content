@@ -70,37 +70,26 @@ export default function ProductCarousel() {
 
   const handleCategoryClick = async (category: Category) => {
     try {
-      // First, try to get sub-categories for this category
-      const subCategoryResponse = await fetch(`http://localhost:5000/api/subcategories/public/category/${category.name}`)
+      // Determine gender based on category name if displaySection is missing or incorrect
+      let gender = 'all';
       
-      if (subCategoryResponse.ok) {
-        const subCategoryData = await subCategoryResponse.json()
-        console.log(`🔍 Found ${subCategoryData.data?.length || 0} sub-categories for ${category.name}`)
-        
-        if (subCategoryData.data && subCategoryData.data.length > 0) {
-          // If sub-categories exist, navigate to the first sub-category page
-          const firstSubCategory = subCategoryData.data[0]
-          const gender = category.displaySection === 'men' ? 'men' : category.displaySection === 'women' ? 'women' : 'all'
-          const url = `/categories/${firstSubCategory.name.toLowerCase().replace(/\s+/g, '-')}?gender=${gender}`
-          console.log(`🔄 Navigating to sub-category: ${url}`)
-          router.push(url)
-          return
-        }
+      if (category.displaySection === 'men' || category.name.toLowerCase() === 'men') {
+        gender = 'men';
+      } else if (category.displaySection === 'women' || category.name.toLowerCase() === 'women') {
+        gender = 'women';
       }
       
-      // If no sub-categories found, navigate to the main category page
-      const gender = category.displaySection === 'men' ? 'men' : category.displaySection === 'women' ? 'women' : 'all'
-      const url = `/categories?gender=${gender}`
-      console.log(`🔄 Navigating to category: ${url} for category: ${category.name}`)
-      router.push(url)
+      const url = `/categories?gender=${gender}`;
+      console.log(`🔄 Navigating to category: ${url} for category: ${category.name} (displaySection: ${category.displaySection})`);
+      router.push(url);
       
     } catch (error) {
-      console.error('Error handling category click:', error)
+      console.error('Error handling category click:', error);
       // Fallback to main category page
-      const gender = category.displaySection === 'men' ? 'men' : category.displaySection === 'women' ? 'women' : 'all'
-      const url = `/categories?gender=${gender}`
-      console.log(`🔄 Fallback navigation to: ${url}`)
-      router.push(url)
+      const gender = category.name.toLowerCase() === 'men' ? 'men' : category.name.toLowerCase() === 'women' ? 'women' : 'all';
+      const url = `/categories?gender=${gender}`;
+      console.log(`🔄 Fallback navigation to: ${url}`);
+      router.push(url);
     }
   }
 
