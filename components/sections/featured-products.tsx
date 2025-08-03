@@ -1,6 +1,7 @@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useCurrency } from "@/lib/currency-context"
 
 const featuredProducts = [
   {
@@ -34,6 +35,8 @@ const featuredProducts = [
 ]
 
 export default function FeaturedProducts() {
+  const { formatPrice } = useCurrency()
+  
   return (
     <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
@@ -64,7 +67,7 @@ export default function FeaturedProducts() {
                 <div className="space-y-2">
                   <p className="text-sm text-[#6e6e6e] uppercase tracking-wide">{product.category}</p>
                   <h3 className="font-semibold text-[#212121]">{product.name}</h3>
-                  <p className="text-lg font-bold text-[#212121]">{product.price}</p>
+                  <p className="text-lg font-bold text-[#212121]">{formatPrice(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</p>
                 </div>
               </CardContent>
             </Card>

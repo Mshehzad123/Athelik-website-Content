@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { useCart } from "@/lib/cart-context";
+import { useCurrency } from "@/lib/currency-context";
 
 export default function CheckoutPage() {
   const { cartItems, cartTotal } = useCart();
+  const { formatPrice, currency } = useCurrency();
   const [customer, setCustomer] = useState({
     name: "",
     email: "",
@@ -27,7 +29,7 @@ export default function CheckoutPage() {
   
   // Coupon states
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
@@ -65,7 +67,7 @@ export default function CheckoutPage() {
       if (response.ok) {
         setAppliedCoupon(data.data);
         setCouponError("");
-        alert(`Coupon applied! You saved $${data.data.discountAmount.toFixed(2)}`);
+        alert(`Coupon applied! You saved ${formatPrice(data.data.discountAmount)}`);
       } else {
         setCouponError(data.message || "Invalid coupon code");
         setAppliedCoupon(null);
@@ -88,18 +90,41 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!customer.name || !customer.email || !customer.phone) {
+      alert("Please fill in all required fields: name, email, and phone number");
+      return;
+    }
+    
+    if (!customer.address.street || !customer.address.city || !customer.address.state || !customer.address.zipCode) {
+      alert("Please fill in all address fields");
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
+      // Map cart items to the expected backend format
+      const mappedItems = cartItems.map(item => ({
+        productId: item.id, // Use the id as productId since that's what we have
+        productName: item.name || "Unknown Product",
+        size: item.size || "Standard",
+        color: item.color || "Default",
+        sku: item.id, // Using id as SKU
+        quantity: item.quantity || 1,
+        price: item.price || 0
+      }));
+      
+      console.log("Mapped cart items:", JSON.stringify(mappedItems, null, 2));
+
       const orderData = {
         customer,
-        items: cartItems,
-        couponCode: appliedCoupon ? appliedCoupon.coupon.code : null,
-        discountAmount: discountAmount,
-        subtotal: subtotal,
-        shippingCost: shippingCost,
-        total: total
+        items: mappedItems,
+        notes: `Order placed via checkout`
       };
+
+      console.log("Sending order data:", JSON.stringify(orderData, null, 2));
 
       const response = await fetch("http://localhost:5000/api/orders/public/create", {
         method: "POST",
@@ -114,11 +139,23 @@ export default function CheckoutPage() {
       } else {
         const errorData = await response.json();
         console.error("Order creation failed:", errorData);
-        alert("Failed to create order: " + (errorData.message || "Unknown error"));
+        console.error("Request data sent:", orderData);
+        
+        // Handle different error types
+        if (response.status === 400) {
+          alert("Invalid order data. Please check your information and try again.");
+        } else if (response.status === 401) {
+          alert("Please login to complete your order.");
+          router.push("/login");
+        } else if (response.status === 500) {
+          alert("Server error. Please try again later or contact support.");
+        } else {
+          alert("Failed to create order: " + (errorData.message || errorData.error || "Unknown error"));
+        }
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Failed to create order");
+      alert("Network error. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -391,6 +428,8 @@ export default function CheckoutPage() {
                 <input
                     type="tel"
                   placeholder="+1 Mobile phone number"
+                  value={customer.phone}
+                  onChange={(e) => setCustomer({...customer, phone: e.target.value})}
                   className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 
@@ -445,7 +484,7 @@ export default function CheckoutPage() {
                       </p>
                       <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                     </div>
-                    <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-medium">{formatPrice(item.price * item.quantity)}</p>
                   </div>
                 ))}
 
@@ -456,7 +495,7 @@ export default function CheckoutPage() {
                       <div className="flex items-center justify-between bg-green-50 p-3 rounded-md">
                         <div>
                           <p className="font-medium text-green-800">Coupon Applied: {appliedCoupon.coupon.code}</p>
-                          <p className="text-sm text-green-600">-${appliedCoupon.discountAmount.toFixed(2)}</p>
+                          <p className="text-sm text-green-600">-{formatPrice(appliedCoupon.discountAmount)}</p>
                         </div>
                         <button 
                           onClick={removeCoupon}
@@ -496,31 +535,31 @@ export default function CheckoutPage() {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount</span>
-                      <span>-${discountAmount.toFixed(2)}</span>
+                      <span>-{formatPrice(discountAmount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span>Shipping</span>
                     <span className={shippingCost === 0 ? "text-green-600 font-medium" : ""}>
-                      {shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}
+                      {shippingCost === 0 ? "FREE" : formatPrice(shippingCost)}
                     </span>
                   </div>
                   {subtotal < 500 && (
                     <div className="text-sm text-gray-600">
-                      Add ${(500 - subtotal).toFixed(2)} more for free shipping!
+                      Add {formatPrice(500 - subtotal)} more for free shipping!
                     </div>
                   )}
                   <div className="border-t pt-2">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">Total</span>
                       <div className="text-right">
-                        <span className="text-sm text-gray-500 mr-2">USD</span>
-                        <span className="text-xl font-bold">${total.toFixed(2)}</span>
+                        <span className="text-sm text-gray-500 mr-2">{currency}</span>
+                        <span className="text-xl font-bold">{formatPrice(total)}</span>
                       </div>
                     </div>
                   </div>
@@ -528,7 +567,7 @@ export default function CheckoutPage() {
 
                 {/* Shipping Promotion */}
                 <div className="bg-blue-50 p-4 rounded-md">
-                  <p className="text-sm text-blue-800">AED 1 To Get Free Shipping</p>
+                  <p className="text-sm text-blue-800">{currency} 1 To Get Free Shipping</p>
                   </div>
               </div>
             </div>

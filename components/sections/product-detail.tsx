@@ -10,12 +10,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import ProductReviews from "./product-reviews"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
+import { useCurrency } from "@/lib/currency-context"
 
 export default function ProductDetail({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes && product.sizes.length > 0 ? product.sizes[0] : "M")
   const [selectedColor, setSelectedColor] = useState<string>(product.colors && product.colors.length > 0 ? product.colors[0].name : "Coral")
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const { addToCart } = useCart()
+  const { formatPrice } = useCurrency()
   
   const nextImage = () => {
     if (product.images && product.images.length > 1) {
@@ -196,9 +198,9 @@ export default function ProductDetail({ product }: { product: Product }) {
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
                   {product.originalPrice && (
-                    <span className="text-gray-400 line-through text-lg">{product.originalPrice}</span>
+                    <span className="text-gray-400 line-through text-lg">{formatPrice(parseFloat(product.originalPrice.replace(/[^0-9.]/g, '')))}</span>
                   )}
-                  <span className="text-2xl font-bold text-white">{product.price}</span>
+                  <span className="text-2xl font-bold text-white">{formatPrice(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</span>
                 </div>
                 <p className="text-sm text-gray-300">EARN 507 PACK VIP POINTS</p>
               </div>
@@ -514,9 +516,9 @@ export default function ProductDetail({ product }: { product: Product }) {
                   <h3 className="text-sm font-medium text-[#212121] mb-2 line-clamp-2">{item.name}</h3>
                   <div className="flex items-center space-x-2">
                     {item.originalPrice && (
-                      <span className="text-sm text-[#6e6e6e] line-through">{item.originalPrice}</span>
+                      <span className="text-sm text-[#6e6e6e] line-through">{formatPrice(parseFloat(item.originalPrice.replace(/[^0-9.]/g, '')))}</span>
                     )}
-                    <span className="text-sm font-bold text-[#212121]">{item.price}</span>
+                    <span className="text-sm font-bold text-[#212121]">{formatPrice(parseFloat(item.price.replace(/[^0-9.]/g, '')))}</span>
                   </div>
                 </div>
               </div>
@@ -555,7 +557,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">$36.00</p>
+                  <p className="text-lg font-bold text-[#212121]">{formatPrice(36.00)}</p>
                 </div>
               </div>
 
@@ -575,7 +577,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">$48.00</p>
+                  <p className="text-lg font-bold text-[#212121]">{formatPrice(48.00)}</p>
                 </div>
               </div>
 
@@ -595,7 +597,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">$72.00</p>
+                  <p className="text-lg font-bold text-[#212121]">{formatPrice(72.00)}</p>
                 </div>
               </div>
 
@@ -615,7 +617,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">$26.00</p>
+                  <p className="text-lg font-bold text-[#212121]">{formatPrice(26.00)}</p>
                 </div>
               </div>
             </div>

@@ -1,12 +1,29 @@
+"use client"
+
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { getRelatedProducts } from "@/lib/api"
+import { useCurrency } from "@/lib/currency-context"
+import { useEffect, useState } from "react"
 
-export default async function RelatedProducts({
+export default function RelatedProducts({
   currentProductId,
   category,
 }: { currentProductId: string; category: string }) {
-  const relatedProducts = await getRelatedProducts(currentProductId, category)
+  const [relatedProducts, setRelatedProducts] = useState([])
+  const { formatPrice } = useCurrency()
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const products = await getRelatedProducts(currentProductId, category)
+        setRelatedProducts(products)
+      } catch (error) {
+        console.error('Failed to fetch related products:', error)
+      }
+    }
+    fetchProducts()
+  }, [currentProductId, category])
 
   return (
     <section className="py-16 bg-[#fafafa]">
@@ -42,9 +59,9 @@ export default async function RelatedProducts({
                   <p className="text-sm text-[#6e6e6e] uppercase tracking-wide">{product.category}</p>
                   <h3 className="font-semibold text-[#212121]">{product.name}</h3>
                   <div className="flex items-center space-x-2">
-                    <p className="text-lg font-bold text-[#212121]">{product.price}</p>
+                    <p className="text-lg font-bold text-[#212121]">{formatPrice(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</p>
                     {product.originalPrice && (
-                      <p className="text-sm text-[#6e6e6e] line-through">{product.originalPrice}</p>
+                      <p className="text-sm text-[#6e6e6e] line-through">{formatPrice(parseFloat(product.originalPrice.replace(/[^0-9.]/g, '')))}</p>
                     )}
                   </div>
                 </div>

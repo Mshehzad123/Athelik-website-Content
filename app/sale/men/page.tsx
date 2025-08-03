@@ -70,43 +70,43 @@ export default function MenSalePage() {
       </div>
 
 
-<div className="flex flex-row justify-center items-center gap-4 px-8 py-12">
-    <div className="flex flex-col items-center p-0">
+<div className="flex flex-row justify-between items-center gap-4 px-8 py-12 w-full">
+    <div className="flex flex-col items-center p-0 flex-1">
         <div className="w-48 h-64 rounded-lg overflow-hidden flex items-center justify-center">
             <img src="/images/WomenBestSellers/1.png" alt="EVERYDAY SEAMLESS LEGGINGS" className="w-full h-full object-cover" />
         </div>
         <p className="text-white text-sm mt-2 text-center">EVERYDAY SEAMLESS LEGGINGS</p>
     </div>
     
-    <div className="flex flex-col items-center p-0">
+    <div className="flex flex-col items-center p-0 flex-1">
         <div className="w-48 h-64 rounded-lg overflow-hidden flex items-center justify-center">
             <img src="/images/WomenBestSellers/1.png" alt="EVERYDAY SEAMLESS LEGGINGS" className="w-full h-full object-cover" />
         </div>
         <p className="text-white text-sm mt-2 text-center">EVERYDAY SEAMLESS LEGGINGS</p>
     </div>
     
-    <div className="flex flex-col items-center p-0">
+    <div className="flex flex-col items-center p-0 flex-1">
         <div className="w-48 h-64 rounded-lg overflow-hidden flex items-center justify-center">
             <img src="/images/WomenBestSellers/1.png" alt="EVERYDAY SEAMLESS LEGGINGS" className="w-full h-full object-cover" />
         </div>
         <p className="text-white text-sm mt-2 text-center">EVERYDAY SEAMLESS LEGGINGS</p>
     </div>
     
-    <div className="flex flex-col items-center p-0">
+    <div className="flex flex-col items-center p-0 flex-1">
         <div className="w-48 h-64 rounded-lg overflow-hidden flex items-center justify-center">
             <img src="/images/WomenBestSellers/1.png" alt="EVERYDAY SEAMLESS LEGGINGS" className="w-full h-full object-cover" />
         </div>
         <p className="text-white text-sm mt-2 text-center">EVERYDAY SEAMLESS LEGGINGS</p>
     </div>
     
-    <div className="flex flex-col items-center p-0">
+    <div className="flex flex-col items-center p-0 flex-1">
         <div className="w-48 h-64 rounded-lg overflow-hidden flex items-center justify-center">
             <img src="/images/WomenBestSellers/1.png" alt="EVERYDAY SEAMLESS LEGGINGS" className="w-full h-full object-cover" />
         </div>
         <p className="text-white text-sm mt-2 text-center">EVERYDAY SEAMLESS LEGGINGS</p>
     </div>
     
-    <div className="flex flex-col items-center p-0">
+    <div className="flex flex-col items-center p-0 flex-1">
         <div className="w-48 h-64 rounded-lg overflow-hidden flex items-center justify-center">
             <img src="/images/WomenBestSellers/1.png" alt="EVERYDAY SEAMLESS LEGGINGS" className="w-full h-full object-cover" />
         </div>

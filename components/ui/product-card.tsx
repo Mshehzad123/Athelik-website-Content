@@ -1,6 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useCurrency } from "@/lib/currency-context"
 
 interface ProductCardProps {
   id: string
@@ -27,6 +28,7 @@ export default function ProductCard({
   className,
   tall = false,
 }: ProductCardProps) {
+  const { formatPrice } = useCurrency()
   return (
     <Link href={href} className={cn("group block", className)}>
       <div className="relative overflow-hidden bg-white hover:shadow-md transition-shadow duration-300">
@@ -64,8 +66,8 @@ export default function ProductCard({
 
           {/* Pricing */}
           <div className="flex items-center space-x-2">
-            {originalPrice && <span className="text-sm text-gray-300 line-through">{originalPrice}</span>}
-            <span className="text-lg font-bold text-white">{price}</span>
+            {originalPrice && <span className="text-sm text-gray-300 line-through">{formatPrice(parseFloat(originalPrice.replace(/[^0-9.]/g, '')))}</span>}
+            <span className="text-lg font-bold text-white">{formatPrice(parseFloat(price.replace(/[^0-9.]/g, '')))}</span>
             {discount && <span className="bg-white text-black px-2 py-0.5 text-xs font-bold">{discount}%</span>}
           </div>
         </div>

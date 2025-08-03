@@ -1,6 +1,9 @@
+"use client"
+
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useCurrency } from "@/lib/currency-context"
 
 const products = [
   {
@@ -57,6 +60,8 @@ const products = [
 ]
 
 export default function ProductGrid() {
+  const { formatPrice } = useCurrency()
+  
   return (
     <section className="py-20 bg-[#fafafa]">
       <div className="container mx-auto px-4">
@@ -91,9 +96,9 @@ export default function ProductGrid() {
                   <p className="text-sm text-[#6e6e6e] uppercase tracking-wide">{product.category}</p>
                   <h3 className="font-semibold text-[#212121]">{product.name}</h3>
                   <div className="flex items-center space-x-2">
-                    <p className="text-lg font-bold text-[#212121]">{product.price}</p>
+                    <p className="text-lg font-bold text-[#212121]">{formatPrice(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</p>
                     {product.originalPrice && (
-                      <p className="text-sm text-[#6e6e6e] line-through">{product.originalPrice}</p>
+                      <p className="text-sm text-[#6e6e6e] line-through">{formatPrice(parseFloat(product.originalPrice.replace(/[^0-9.]/g, '')))}</p>
                     )}
                   </div>
                 </div>

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
+import { useCurrency } from "@/lib/currency-context"
 
 // Recommended products for free shipping
 const recommendedProducts = [
@@ -36,6 +37,7 @@ const recommendedProducts = [
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity } = useCart()
+  const { currency, formatPrice, getCurrencySymbol, refreshCurrency } = useCurrency()
   const [promoCode, setPromoCode] = useState("")
   const [promoApplied, setPromoApplied] = useState(false)
   const [bundleDiscount, setBundleDiscount] = useState<any>(null)
@@ -148,9 +150,17 @@ export default function CartPage() {
             <div className="max-w-2xl mx-auto">
               {/* Free Shipping Banner */}
               <div className="mb-12">
-                <h2 className="text-2xl lg:text-3xl font-bold text-[#cbf26c] mb-8 uppercase tracking-wide">
-                  AED {amountForFreeShipping} MORE TO GET FREE SHIPPING
-                </h2>
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl lg:text-3xl font-bold text-[#cbf26c] uppercase tracking-wide">
+                    {getCurrencySymbol()} {amountForFreeShipping} MORE TO GET FREE SHIPPING
+                  </h2>
+                  <button 
+                    onClick={refreshCurrency}
+                    className="bg-[#cbf26c] text-[#212121] px-4 py-2 rounded text-sm font-medium"
+                  >
+                    Refresh Currency
+                  </button>
+                </div>
 
                 {/* Recommended Products Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -172,7 +182,7 @@ export default function CartPage() {
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-sm font-medium text-white">{product.name}</h3>
-                        <p className="text-lg font-bold text-white">{product.price}</p>
+                        <p className="text-lg font-bold text-white">{formatPrice(parseFloat(product.price.replace('$', '')))}</p>
                       </div>
                     </div>
                   ))}
@@ -244,7 +254,7 @@ export default function CartPage() {
                       <p className="text-sm text-gray-600">
                         {item.color} | {item.size}
                       </p>
-                      <p className="font-bold text-[#212121]">${item.price.toFixed(2)}</p>
+                      <p className="font-bold text-[#212121]">{formatPrice(item.price)}</p>
                     </div>
 
                     {/* Actions */}
@@ -260,7 +270,7 @@ export default function CartPage() {
 
                       {/* Quantity Selector */}
                       <Select
-                        value={item.quantity.toString()}
+                        value={(item.quantity || 1).toString()}
                         onValueChange={(value) => updateQuantity(item.id, Number.parseInt(value))}
                       >
                         <SelectTrigger className="w-20 h-8 text-sm">
@@ -292,14 +302,14 @@ export default function CartPage() {
                   <div className="flex items-center space-x-2">
                     <Percent className="h-4 w-4 text-green-600" />
                     <span className="text-sm text-green-700">
-                      Save ${bundleDiscount.discountAmount.toFixed(2)} ({bundleDiscount.discountPercentage}% off)
+                      Save {formatPrice(bundleDiscount.discountAmount)} ({bundleDiscount.discountPercentage}% off)
                     </span>
                   </div>
                 </div>
               )}
 
               {/* Discount Code */}
-              <div className="mb-8">
+              {/* <div className="mb-8">
                 <p className="text-sm font-medium text-[#212121] mb-3">Discount code?</p>
                 <div className="flex space-x-2">
                   <Input
@@ -317,13 +327,35 @@ export default function CartPage() {
                   </Button>
                 </div>
                 {promoApplied && <p className="text-sm text-green-600 mt-2">Promo code applied!</p>}
-              </div>
+              </div> */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
               {/* Order Summary */}
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
                 
                 {bundleDiscount?.hasBundleDiscount && (
@@ -332,14 +364,14 @@ export default function CartPage() {
                       <Package className="h-4 w-4" />
                       <span>Bundle Discount</span>
                     </span>
-                    <span>-${bundleDiscount.discountAmount.toFixed(2)}</span>
+                    <span>-{formatPrice(bundleDiscount.discountAmount)}</span>
                   </div>
                 )}
                 
                 {promoApplied && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount (10%)</span>
-                    <span>-${promoDiscount.toFixed(2)}</span>
+                    <span>-{formatPrice(promoDiscount)}</span>
                   </div>
                 )}
                 
@@ -348,7 +380,7 @@ export default function CartPage() {
                     {shippingInfo?.isFreeShipping ? "Shipping" : "Estimated Shipping"}
                   </span>
                   <span className={`font-medium ${shippingInfo?.isFreeShipping ? 'text-green-600' : ''}`}>
-                    {shippingInfo?.isFreeShipping ? "FREE" : `$${shipping.toFixed(2)}`}
+                    {shippingInfo?.isFreeShipping ? "FREE" : formatPrice(shipping)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -360,8 +392,8 @@ export default function CartPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold text-[#212121]">Total</span>
                     <div className="text-right">
-                      <span className="text-sm text-gray-500 mr-2">USD</span>
-                      <span className="text-xl font-bold text-[#212121]">${total.toFixed(2)}</span>
+                      <span className="text-sm text-gray-500 mr-2">{currency}</span>
+                      <span className="text-xl font-bold text-[#212121]">{formatPrice(total)}</span>
                     </div>
                   </div>
                 </div>

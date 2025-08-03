@@ -68,10 +68,22 @@ export default function ProfilePage() {
         const data = await response.json();
         setProfileData(data);
       } else {
-        console.error("Profile fetch failed:", response.status);
+        // Handle different error statuses
+        if (response.status === 401) {
+          alert("Session expired. Please login again.");
+          localStorage.removeItem("token");
+          router.push("/login");
+        } else if (response.status === 403) {
+          alert("Access denied. Please check your permissions.");
+        } else if (response.status === 404) {
+          alert("Profile not found. Please contact support.");
+        } else {
+          alert(`Failed to load profile. Error: ${response.status}`);
+        }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      alert("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
+import { CurrencyProvider } from "@/lib/currency-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,9 +27,11 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <CurrencyProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </CurrencyProvider>
       </body>
     </html>
   )
