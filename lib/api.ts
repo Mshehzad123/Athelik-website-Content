@@ -1,11 +1,14 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export interface Product {
-  id: string;
-  name: string;
-  price: string;
+  _id: string;
+  id?: string;
+  name?: string;
+  title: string;
+  price?: string;
+  basePrice: number;
   originalPrice?: string;
-  image: string;
+  image?: string;
   images: string[];
   category: string;
   subCategory?: string;
@@ -18,9 +21,11 @@ export interface Product {
     image?: string;
   }>;
   sizes?: string[];
+  sizeOptions?: string[];
   variants?: any[];
   defaultVariant?: string;
   rating?: number;
+  reviewRating?: number;
   reviewCount?: number;
 }
 
@@ -68,6 +73,21 @@ export interface Category {
   carouselImage?: string;
   showInCarousel?: boolean;
   carouselOrder?: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Bundle {
+  _id: string;
+  name: string;
+  description?: string;
+  products: Product[];
+  originalPrice: number;
+  bundlePrice: number;
+  bundleType: '4-products' | '6-products';
+  category: 'men' | 'women';
+  startDate?: string;
+  endDate?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -219,6 +239,32 @@ class ApiService {
       return [];
     }
   }
+
+  // Get bundles
+  async getBundles(category?: string): Promise<Bundle[]> {
+    try {
+      const endpoint = category ? `/bundles/public/active/${category}` : '/bundles/public/active';
+      const response = await this.request<{ data: Bundle[] }>(endpoint);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching bundles:', error);
+      return [];
+    }
+  }
+
+  // Calculate bundle discount
+  async calculateBundleDiscount(cartItems: any[]): Promise<any> {
+    try {
+      const response = await this.request<{ data: any }>('/bundles/public/calculate-discount', {
+        method: 'POST',
+        body: JSON.stringify({ cartItems }),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error calculating bundle discount:', error);
+      return null;
+    }
+  }
 }
 
 // Create API service instance
@@ -264,4 +310,13 @@ export async function getCarouselCategories(): Promise<Category[]> {
 
 export async function getCategories(): Promise<Category[]> {
   return apiService.getCategories();
+}
+
+// Bundle functions
+export async function getBundles(category?: string): Promise<Bundle[]> {
+  return apiService.getBundles(category);
+}
+
+export async function calculateBundleDiscount(cartItems: any[]): Promise<any> {
+  return apiService.calculateBundleDiscount(cartItems);
 } 

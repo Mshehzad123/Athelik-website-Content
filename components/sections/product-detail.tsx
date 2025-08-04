@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, Share2, Star, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
@@ -8,16 +8,22 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import ProductReviews from "./product-reviews"
-import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
-import { useCurrency } from "@/lib/currency-context"
+import { useWishlist } from "@/lib/wishlist-context"
+import { getAllProducts } from "@/lib/api"
+import { formatCurrency } from "@/lib/utils"
+import type { Product } from "@/lib/types"
 
 export default function ProductDetail({ product }: { product: Product }) {
+  const { addToCart, showNotification, cartItems } = useCart()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes && product.sizes.length > 0 ? product.sizes[0] : "M")
   const [selectedColor, setSelectedColor] = useState<string>(product.colors && product.colors.length > 0 ? product.colors[0].name : "Coral")
   const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const { addToCart } = useCart()
-  const { formatPrice } = useCurrency()
+  const [shopTheLookItems, setShopTheLookItems] = useState<any[]>([])
+  const [carouselItems, setCarouselItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0)
   
   const nextImage = () => {
     if (product.images && product.images.length > 1) {
@@ -29,6 +35,16 @@ export default function ProductDetail({ product }: { product: Product }) {
     if (product.images && product.images.length > 1) {
       setActiveImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)
     }
+  }
+
+  const nextCarousel = () => {
+    if (carouselItems.length > 4) {
+      setCurrentCarouselIndex((prev) => Math.min(prev + 1, carouselItems.length - 4))
+    }
+  }
+
+  const prevCarousel = () => {
+    setCurrentCarouselIndex((prev) => Math.max(prev - 1, 0))
   }
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     highlight: true,
@@ -51,7 +67,42 @@ export default function ProductDetail({ product }: { product: Product }) {
 
   const sizeOptions = product.sizes || ["S", "M", "L", "XL", "XXL"]
 
-  const shopTheLookItems = [
+  // Fetch dynamic products for Shop the Look and Carousel
+  useEffect(() => {
+    const fetchDynamicProducts = async () => {
+      try {
+        setLoading(true)
+        const allProducts = await getAllProducts()
+        
+        // Filter out current product and get a mix of men's and women's products
+        const filteredProducts = allProducts.filter(p => p.id !== product.id)
+        
+        // Create Shop the Look items (5 items)
+        const shopItems = filteredProducts.slice(0, 5).map((p, index) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          originalPrice: p.originalPrice,
+          image: p.image || "/placeholder.svg?height=300&width=250",
+          isNew: index % 3 === 0, // Every 3rd item is "NEW"
+        }))
+        
+        // Create Carousel items (8 items with discounts for scrolling)
+        const carouselItems = filteredProducts.slice(5, 13).map((p, index) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          originalPrice: p.originalPrice,
+          image: p.image || "/placeholder.svg?height=300&width=300",
+          discount: [30, 50, 30, 25, 40, 35, 45, 20][index] || 30, // Different discount percentages
+        }))
+        
+        setShopTheLookItems(shopItems)
+        setCarouselItems(carouselItems)
+      } catch (error) {
+        console.error('Error fetching dynamic products:', error)
+        // Fallback to static data if API fails
+        setShopTheLookItems([
     {
       id: 1,
       name: "Essential Oversized Tee - Pearl White",
@@ -90,7 +141,44 @@ export default function ProductDetail({ product }: { product: Product }) {
       image: "/placeholder.svg?height=300&width=250",
       isNew: false,
     },
-  ]
+        ])
+        setCarouselItems([
+          {
+            id: 1,
+            name: "SQUATWOLF Baseball Cap - Pink",
+            price: "$36.00",
+            image: "/placeholder.svg?height=300&width=300",
+            discount: 30,
+          },
+          {
+            id: 2,
+            name: "Athletic Training Shirt - Coral",
+            price: "$48.00",
+            image: "/placeholder.svg?height=300&width=300",
+            discount: 30,
+          },
+          {
+            id: 3,
+            name: "Zip-Up Hoodie - Coral Pink",
+            price: "$72.00",
+            image: "/placeholder.svg?height=300&width=300",
+            discount: 50,
+          },
+          {
+            id: 4,
+            name: "SQUATWOLF Athletic Socks - White",
+            price: "$26.00",
+            image: "/placeholder.svg?height=300&width=300",
+            discount: 30,
+          },
+        ])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDynamicProducts()
+  }, [product.id])
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({
@@ -116,6 +204,53 @@ export default function ProductDetail({ product }: { product: Product }) {
       alert('Link copied to clipboard!')
     }
   }
+
+  const handleAddToCart = () => {
+    // Check if product is already in cart
+    if (isProductInCart) {
+      showNotification("Product is already in cart!")
+      return
+    }
+    
+    // Convert price string to number (remove $ and convert to number)
+    const priceNumber = parseFloat(product.price.replace(/[^0-9.]/g, ''))
+    
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: priceNumber,
+      image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
+      color: selectedColor,
+      size: selectedSize,
+      quantity: 1,
+      fit: "REGULAR FIT"
+    })
+  }
+
+  const handleWishlistToggle = () => {
+    const wishlistItem = {
+      id: product.id,
+      name: product.name,
+      price: parseFloat(product.price.replace(/[^0-9.]/g, '')),
+      image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
+      color: selectedColor,
+      size: selectedSize,
+      fit: "REGULAR FIT"
+    }
+
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id)
+    } else {
+      addToWishlist(wishlistItem)
+    }
+  }
+
+  // Check if product is already in cart
+  const isProductInCart = cartItems.some(item => 
+    item.id === product.id && 
+    item.color === selectedColor && 
+    item.size === selectedSize
+  )
 
   return (
     <div className="bg-white">
@@ -198,9 +333,9 @@ export default function ProductDetail({ product }: { product: Product }) {
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
                   {product.originalPrice && (
-                    <span className="text-gray-400 line-through text-lg">{formatPrice(parseFloat(product.originalPrice.replace(/[^0-9.]/g, '')))}</span>
+                    <span className="text-gray-400 line-through text-lg">{formatCurrency(parseFloat(product.originalPrice.replace(/[^0-9.]/g, '')))}</span>
                   )}
-                  <span className="text-2xl font-bold text-white">{formatPrice(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</span>
+                  <span className="text-2xl font-bold text-white">{formatCurrency(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</span>
                 </div>
                 <p className="text-sm text-gray-300">EARN 507 PACK VIP POINTS</p>
               </div>
@@ -214,8 +349,15 @@ export default function ProductDetail({ product }: { product: Product }) {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700">
-                    <Heart className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`h-8 w-8 hover:bg-gray-700 ${
+                      isInWishlist(product.id) ? 'text-red-500' : 'text-white'
+                    }`}
+                    onClick={handleWishlistToggle}
+                  >
+                    <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-gray-700" onClick={handleShare}>
                     <Share2 className="h-4 w-4" />
@@ -280,22 +422,28 @@ export default function ProductDetail({ product }: { product: Product }) {
               </div>
 
               {/* Add to Cart */}
+              <div className="space-y-3">
+                <Button
+                  size="lg"
+                  className={`w-full font-semibold py-4 rounded-md transition-all duration-300 ${
+                    isProductInCart 
+                      ? "bg-green-600 text-white cursor-not-allowed" 
+                      : "bg-white text-[#212121] hover:bg-gray-100"
+                  }`}
+                  onClick={handleAddToCart}
+                  disabled={isProductInCart}
+                >
+                  {isProductInCart ? "✓ ALREADY IN CART" : "ADD TO CART"}
+                </Button>
               <Button
+                asChild
+                  variant="outline"
                 size="lg"
-                className="w-full bg-white text-[#212121] hover:bg-gray-100 font-semibold py-4 rounded-md transition-all duration-300"
-                onClick={() => addToCart({
-                  id: product.id || `product-${Math.random()}`,
-                  name: product.name,
-                  price: parseFloat(product.price.replace(/[^0-9.]/g, '')),
-                  image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
-                  color: selectedColor,
-                  size: selectedSize,
-                  quantity: 1,
-                  fit: "Regular Fit"
-                })}
+                  className="w-full border-white text-white hover:bg-white hover:text-[#212121] font-semibold py-4 rounded-md transition-all duration-300"
               >
-                ADD TO CART
+                  <Link href="/cart">VIEW CART</Link>
               </Button>
+              </div>
 
               {/* Shop the Look */}
               <div className="space-y-4 pt-8">
@@ -498,11 +646,21 @@ export default function ProductDetail({ product }: { product: Product }) {
           <h2 className="text-2xl font-bold text-[#212121] mb-8 uppercase tracking-wide">SHOP THE LOOK</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {shopTheLookItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              >
+            {loading ? (
+              // Loading skeleton
+              Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg overflow-hidden shadow-sm">
+                  <div className="relative aspect-[4/5] overflow-hidden bg-gray-200 animate-pulse"></div>
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3"></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              shopTheLookItems.map((item) => (
+                <Link key={item.id} href={`/product/${item.id}`} className="block">
+                  <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 <div className="relative aspect-[4/5] overflow-hidden">
                   <Image
                     src={item.image || "/placeholder.svg"}
@@ -516,13 +674,15 @@ export default function ProductDetail({ product }: { product: Product }) {
                   <h3 className="text-sm font-medium text-[#212121] mb-2 line-clamp-2">{item.name}</h3>
                   <div className="flex items-center space-x-2">
                     {item.originalPrice && (
-                      <span className="text-sm text-[#6e6e6e] line-through">{formatPrice(parseFloat(item.originalPrice.replace(/[^0-9.]/g, '')))}</span>
+                      <span className="text-sm text-[#6e6e6e] line-through">{formatCurrency(parseFloat(item.originalPrice.replace(/[^0-9.]/g, '')))}</span>
                     )}
-                    <span className="text-sm font-bold text-[#212121]">{formatPrice(parseFloat(item.price.replace(/[^0-9.]/g, '')))}</span>
+                    <span className="text-sm font-bold text-[#212121]">{formatCurrency(parseFloat(item.price.replace(/[^0-9.]/g, '')))}</span>
                   </div>
                 </div>
               </div>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -532,94 +692,61 @@ export default function ProductDetail({ product }: { product: Product }) {
         <div className="container mx-auto px-4">
           <div className="relative">
             {/* Navigation Arrows */}
-            <button className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:shadow-lg transition-shadow">
+            <button 
+              onClick={prevCarousel}
+              disabled={currentCarouselIndex === 0}
+              className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:shadow-lg transition-shadow ${
+                currentCarouselIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
+              }`}
+            >
               <ChevronLeft className="h-6 w-6 text-[#212121]" />
             </button>
-            <button className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:shadow-lg transition-shadow">
+            <button 
+              onClick={nextCarousel}
+              disabled={currentCarouselIndex >= carouselItems.length - 4}
+              className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:shadow-lg transition-shadow ${
+                currentCarouselIndex >= carouselItems.length - 4 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
+              }`}
+            >
               <ChevronRight className="h-6 w-6 text-[#212121]" />
             </button>
 
             {/* Product Carousel */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 px-16">
-              {/* Pink Cap */}
-              <div className="group cursor-pointer">
-                <div className="relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              {loading ? (
+                // Loading skeleton
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="group">
+                    <div className="relative bg-white rounded-lg overflow-hidden shadow-sm">
+                      <div className="aspect-square relative overflow-hidden bg-gray-200 animate-pulse"></div>
+                </div>
+                <div className="mt-4 text-center">
+                      <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                carouselItems.slice(currentCarouselIndex, currentCarouselIndex + 4).map((item) => (
+                  <Link key={item.id} href={`/product/${item.id}`} className="group block">
+                    <div className="relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                   <div className="aspect-square relative overflow-hidden">
                     <Image
-                      src="/placeholder.svg?height=300&width=300"
-                      alt="SQUATWOLF Baseball Cap - Pink"
+                          src={item.image || "/placeholder.svg?height=300&width=300"}
+                          alt={item.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute top-3 right-3 bg-[#212121] text-white text-xs font-bold px-2 py-1 rounded">
-                      -30%
+                          -{item.discount}%
                     </div>
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">{formatPrice(36.00)}</p>
-                </div>
-              </div>
-
-              {/* Coral Athletic Shirt */}
-              <div className="group cursor-pointer">
-                <div className="relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="aspect-square relative overflow-hidden">
-                    <Image
-                      src="/placeholder.svg?height=300&width=300"
-                      alt="Athletic Training Shirt - Coral"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3 bg-[#212121] text-white text-xs font-bold px-2 py-1 rounded">
-                      -30%
+                      <p className="text-lg font-bold text-[#212121]">{formatCurrency(parseFloat(item.price.replace(/[^0-9.]/g, '')))}</p>
                     </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">{formatPrice(48.00)}</p>
-                </div>
-              </div>
-
-              {/* Pink Zip Hoodie */}
-              <div className="group cursor-pointer">
-                <div className="relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="aspect-square relative overflow-hidden">
-                    <Image
-                      src="/placeholder.svg?height=300&width=300"
-                      alt="Zip-Up Hoodie - Coral Pink"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3 bg-[#212121] text-white text-xs font-bold px-2 py-1 rounded">
-                      -50%
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">{formatPrice(72.00)}</p>
-                </div>
-              </div>
-
-              {/* White Athletic Socks */}
-              <div className="group cursor-pointer">
-                <div className="relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="aspect-square relative overflow-hidden">
-                    <Image
-                      src="/placeholder.svg?height=300&width=300"
-                      alt="SQUATWOLF Athletic Socks - White"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3 bg-[#212121] text-white text-xs font-bold px-2 py-1 rounded">
-                      -30%
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-center">
-                  <p className="text-lg font-bold text-[#212121]">{formatPrice(26.00)}</p>
-                </div>
-              </div>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -104,10 +104,20 @@ export default function ProfilePage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD"
-    }).format(amount);
+    // Get currency from localStorage or default to USD
+    const currency = typeof window !== 'undefined' ? localStorage.getItem('currency') || 'USD' : 'USD';
+    
+    if (currency === 'AED') {
+      return new Intl.NumberFormat("en-AE", {
+        style: "currency",
+        currency: "AED"
+      }).format(amount);
+    } else {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD"
+      }).format(amount);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -182,10 +192,6 @@ export default function ProfilePage() {
             <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
             <p className="text-gray-600 mt-2">Manage your account and view your orders</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import ProductCard from "@/components/ui/product-card"
 import type { Product } from "@/lib/types"
 import { SlidersHorizontal, X } from "lucide-react"
+import { getCurrencySymbol, formatPrice } from "@/lib/utils"
 
 export default function ProductCollection({ products, loading = false }: { products: Product[], loading?: boolean }) {
   const [filteredProducts, setFilteredProducts] = useState(products)
@@ -143,7 +144,7 @@ export default function ProductCollection({ products, loading = false }: { produ
               <div>
                 <h4 className="font-medium text-[#212121] mb-3">Price Range</h4>
                 <div className="text-[#6e6e6e]">
-                  <p>$0 - $200</p>
+                  <p>{getCurrencySymbol()}0 - {formatPrice(200)}</p>
                 </div>
               </div>
             </div>

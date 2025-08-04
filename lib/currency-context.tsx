@@ -24,9 +24,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         setCurrencyState(savedCurrency)
       }
       
-      // Then sync with admin settings from backend
+      // Then sync with admin settings from frontend API
       try {
-        const response = await fetch('http://localhost:5000/api/settings/public')
+        const response = await fetch('/api/settings')
         if (response.ok) {
           const settings = await response.json()
           if (settings.currency) {
@@ -54,7 +54,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const refreshCurrency = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/settings/public')
+      const response = await fetch('/api/settings')
       if (response.ok) {
         const settings = await response.json()
         if (settings.currency) {

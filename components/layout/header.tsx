@@ -8,6 +8,7 @@ import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown, LogOut } from "
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 
 interface SubCategory {
   id: string
@@ -25,6 +26,7 @@ export default function Header() {
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   const { cartCount } = useCart()
+  const { wishlistCount } = useWishlist()
 
   // Fetch sub-categories from backend
   useEffect(() => {
@@ -150,21 +152,18 @@ export default function Header() {
             <div className="hidden lg:flex items-center space-x-6">
               {user ? (
                 <>
-                  <span className="text-[#d9d9d9] flex items-center">
-                    <User className="h-3 w-3 mr-1" />
+                  <span className="text-[#d9d9d9]">
                     {user.firstName || user.name || user.email}
                   </span>
                   <button 
                     onClick={handleLogout}
-                    className="text-[#d9d9d9] hover:text-white transition-colors flex items-center"
+                    className="text-[#d9d9d9] hover:text-white transition-colors"
                   >
-                    <LogOut className="h-3 w-3 mr-1" />
                     Logout
                   </button>
                 </>
               ) : (
-                <Link href="/login" className="text-[#d9d9d9] hover:text-white transition-colors flex items-center">
-                  <User className="h-3 w-3 mr-1" />
+                <Link href="/login" className="text-[#d9d9d9] hover:text-white transition-colors">
                   Login
                 </Link>
               )}
@@ -357,42 +356,36 @@ export default function Header() {
             {/* Icons */}
             <div className="flex items-center space-x-3">
               {/* Wishlist */}
-              <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white">
-                <Heart className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="relative hover:bg-[#141619] text-white group" asChild>
+                <Link href="/wishlist">
+                  <Heart className="h-5 w-5 group-hover:text-[#cbf26c] transition-colors" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#cbf26c] text-[#212121] text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
               </Button>
 
               {/* User Account */}
               {user ? (
-                <div className="flex items-center space-x-2">
-                  <span className="text-white text-sm hidden md:block">
-                    {user.firstName || user.name || user.email}
-                  </span>
-                  <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white" asChild>
-                    <Link href="/profile">
-                      <User className="h-5 w-5" />
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="hover:bg-[#141619] text-white"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-5 w-5" />
-                  </Button>
-                </div>
+                <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white group" asChild>
+                  <Link href="/profile">
+                    <User className="h-5 w-5 group-hover:text-[#cbf26c] transition-colors" />
+                  </Link>
+                </Button>
               ) : (
-                <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white" asChild>
+                <Button variant="ghost" size="icon" className="hover:bg-[#141619] text-white group" asChild>
                   <Link href="/login">
-                    <User className="h-5 w-5" />
+                    <User className="h-5 w-5 group-hover:text-[#cbf26c] transition-colors" />
                   </Link>
                 </Button>
               )}
 
               {/* Shopping Bag */}
-              <Button variant="ghost" size="icon" className="relative hover:bg-[#141619] text-white" asChild>
+              <Button variant="ghost" size="icon" className="relative hover:bg-[#141619] text-white group" asChild>
                 <Link href="/cart">
-                  <ShoppingBag className="h-5 w-5" />
+                  <ShoppingBag className="h-5 w-5 group-hover:text-[#cbf26c] transition-colors" />
                   <span className="absolute -top-1 -right-1 bg-[#cbf26c] text-[#212121] text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {cartCount}
                   </span>

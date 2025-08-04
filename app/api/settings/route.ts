@@ -6,6 +6,17 @@ let settings = {
 }
 
 export async function GET() {
+  // Try to get settings from backend first
+  try {
+    const response = await fetch('http://localhost:5000/api/settings/public')
+    if (response.ok) {
+      const backendSettings = await response.json()
+      settings = { ...settings, ...backendSettings }
+    }
+  } catch (error) {
+    console.error('Failed to fetch from backend:', error)
+  }
+
   return NextResponse.json(settings, {
     headers: {
       'Access-Control-Allow-Origin': '*',
@@ -19,12 +30,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Update settings
+    // Update local settings
     settings = { ...settings, ...body }
     
     // Also update the backend
     try {
-      await fetch('http://localhost:5000/api/settings/currency', {
+      const backendResponse = await fetch('http://localhost:5000/api/settings/currency', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -33,6 +44,12 @@ export async function POST(request: NextRequest) {
           settingsData: JSON.stringify(body)
         }),
       })
+      
+      if (backendResponse.ok) {
+        console.log('Successfully synced currency to backend')
+      } else {
+        console.error('Failed to sync to backend:', backendResponse.status)
+      }
     } catch (error) {
       console.error('Failed to sync with backend:', error)
     }

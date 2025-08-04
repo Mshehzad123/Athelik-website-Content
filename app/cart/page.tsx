@@ -11,38 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 import { useCurrency } from "@/lib/currency-context"
-
-// Recommended products for free shipping
-const recommendedProducts = [
-  {
-    id: 1,
-    name: "Golden Era Fresh Legacy - Marvelous",
-    price: "$50.00",
-    image: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 2,
-    name: '3" Jogger Shorts - Navy',
-    price: "$55.00",
-    image: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 3,
-    name: "Sweat Tee - Paloma Grey Marl",
-    price: "$48.00",
-    image: "/placeholder.svg?height=400&width=300",
-  },
-]
+import { getAllProducts } from "@/lib/api"
+import type { Product } from "@/lib/types"
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity } = useCart()
-  const { currency, formatPrice, getCurrencySymbol, refreshCurrency } = useCurrency()
+  const { cartItems, removeFromCart, updateQuantity, showNotification, addToCart } = useCart()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
+  const { getCurrencySymbol, formatPrice, currency } = useCurrency()
   const [promoCode, setPromoCode] = useState("")
   const [promoApplied, setPromoApplied] = useState(false)
   const [bundleDiscount, setBundleDiscount] = useState<any>(null)
   const [shippingInfo, setShippingInfo] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  
+  // Dynamic product suggestions states
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -93,6 +79,7 @@ export default function CartPage() {
         return
       }
 
+      setLoading(true)
       try {
         const response = await fetch('/api/shipping/calculate', {
           method: 'POST',
@@ -101,27 +88,79 @@ export default function CartPage() {
           },
           body: JSON.stringify({
             subtotal: subtotal,
-            region: 'US'
+            region: 'US',
+            weight: 0
           })
         })
 
         if (response.ok) {
           const data = await response.json()
+          console.log('Shipping calculation response:', data)
           setShippingInfo(data)
+        } else {
+          console.error('Shipping calculation failed:', response.status)
+          // Don't set fallback - let the backend handle it
+          setShippingInfo(null)
         }
       } catch (error) {
         console.error('Error calculating shipping:', error)
-        // Fallback to default shipping
-        setShippingInfo({
-          shippingCost: 5,
-          isFreeShipping: false,
-          remainingForFreeShipping: 70
-        })
+        // Don't set fallback - let the backend handle it
+        setShippingInfo(null)
+      } finally {
+        setLoading(false)
       }
     }
 
     calculateShipping()
   }, [cartItems, subtotal])
+
+  // Fetch dynamic product suggestions for free shipping
+  useEffect(() => {
+    const fetchSuggestedProducts = async () => {
+      if (shippingInfo && !shippingInfo.isFreeShipping && shippingInfo.remainingForFreeShipping > 0) {
+        setLoadingSuggestions(true);
+        try {
+          const allProducts = await getAllProducts();
+          
+          // Filter products that are not already in cart
+          const cartProductIds = cartItems.map(item => item.id);
+          const availableProducts = allProducts.filter(product => 
+            product.id && !cartProductIds.includes(product.id as string)
+          );
+
+          // Find products that can help reach free shipping
+          const suggestions = availableProducts
+            .filter(product => {
+              if (!product.price) return false;
+              const productPrice = parseFloat(product.price.replace('$', ''));
+              // Allow flexibility based on the remaining amount
+              const flexibility = Math.min(shippingInfo.remainingForFreeShipping * 0.3, 30); // 30% flexibility
+              return productPrice <= shippingInfo.remainingForFreeShipping + flexibility;
+            })
+            .sort((a, b) => {
+              if (!a.price || !b.price) return 0;
+              const priceA = parseFloat(a.price.replace('$', ''));
+              const priceB = parseFloat(b.price.replace('$', ''));
+              // Prioritize products that get closest to free shipping threshold
+              const diffA = Math.abs(shippingInfo.remainingForFreeShipping - priceA);
+              const diffB = Math.abs(shippingInfo.remainingForFreeShipping - priceB);
+              return diffA - diffB;
+            })
+            .slice(0, 3); // Show max 3 suggestions
+
+          setSuggestedProducts(suggestions as any);
+        } catch (error) {
+          console.error('Error fetching suggested products:', error);
+        } finally {
+          setLoadingSuggestions(false);
+        }
+      } else {
+        setSuggestedProducts([]);
+      }
+    };
+
+    fetchSuggestedProducts();
+  }, [cartItems, shippingInfo]);
 
   const applyPromoCode = () => {
     if (promoCode.toLowerCase() === "akhlekt10") {
@@ -131,14 +170,32 @@ export default function CartPage() {
     }
   }
 
+  const handleWishlistToggle = (product: Product | any) => {
+    const wishlistItem = {
+      id: product.id,
+      name: product.name,
+      price: typeof product.price === 'string' ? parseFloat(product.price.replace(/[^0-9.]/g, '')) : product.price,
+      image: product.image,
+      color: product.color || "Default",
+      size: product.size || "M",
+      fit: product.fit || "Regular Fit"
+    }
+
+    if (isInWishlist(wishlistItem.id)) {
+      removeFromWishlist(wishlistItem.id)
+    } else {
+      addToWishlist(wishlistItem)
+    }
+  }
+
   // Calculate totals
   const promoDiscount = promoApplied ? subtotal * 0.1 : 0
   const bundleDiscountAmount = bundleDiscount?.discountAmount || 0
   const totalDiscount = promoDiscount + bundleDiscountAmount
-  const shipping = shippingInfo?.shippingCost || 5 // Dynamic shipping cost
+  const shipping = shippingInfo?.isFreeShipping ? 0 : (shippingInfo?.shippingCost || 0) // Use backend shipping cost
   const total = subtotal - totalDiscount + shipping
-  const freeShippingThreshold = shippingInfo?.rule?.freeShippingAt || 75
-  const amountForFreeShipping = shippingInfo?.remainingForFreeShipping || Math.max(0, freeShippingThreshold - subtotal)
+  const freeShippingThreshold = shippingInfo?.rule?.freeShippingAt || 0
+  const amountForFreeShipping = shippingInfo?.remainingForFreeShipping || 0
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -152,40 +209,70 @@ export default function CartPage() {
               <div className="mb-12">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl lg:text-3xl font-bold text-[#cbf26c] uppercase tracking-wide">
-                    {getCurrencySymbol()} {amountForFreeShipping} MORE TO GET FREE SHIPPING
+                    {getCurrencySymbol()} {Math.floor(amountForFreeShipping)} MORE TO GET FREE SHIPPING
                   </h2>
-                  <button 
-                    onClick={refreshCurrency}
-                    className="bg-[#cbf26c] text-[#212121] px-4 py-2 rounded text-sm font-medium"
-                  >
-                    Refresh Currency
-                  </button>
+                
                 </div>
 
-                {/* Recommended Products Grid */}
+                {/* Dynamic Product Suggestions Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {recommendedProducts.map((product) => (
-                    <div key={product.id} className="group cursor-pointer">
-                      <div className="relative bg-white rounded-lg overflow-hidden mb-4">
-                        <div className="aspect-[3/4] relative">
-                          <Image
-                            src={product.image || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          {/* Heart Icon */}
-                          <button className="absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                            <Heart className="h-4 w-4 text-gray-600" />
-                          </button>
+                  {loadingSuggestions ? (
+                    // Loading state
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="group">
+                        <div className="relative bg-white rounded-lg overflow-hidden mb-4">
+                          <div className="aspect-[3/4] relative bg-gray-200 animate-pulse">
+                            <div className="absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center">
+                              <Heart className="h-4 w-4 text-gray-400" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-medium text-white">{product.name}</h3>
-                        <p className="text-lg font-bold text-white">{formatPrice(parseFloat(product.price.replace('$', '')))}</p>
-                      </div>
+                    ))
+                  ) : suggestedProducts.length > 0 ? (
+                    // Dynamic suggestions
+                    suggestedProducts.map((product) => (
+                      <Link key={product.id} href={`/product/${product.id}`} className="group block">
+                        <div className="relative bg-white rounded-lg overflow-hidden mb-4 cursor-pointer">
+                          <div className="aspect-[3/4] relative">
+                            <Image
+                              src={product.image || "/placeholder.svg"}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {/* Heart Icon */}
+                            <button 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleWishlistToggle(product);
+                              }}
+                              className={`absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors z-10 ${
+                                isInWishlist(product.id) ? 'text-red-500' : 'text-gray-600'
+                              }`}
+                            >
+                              <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-medium text-white">{product.name}</h3>
+                          <p className="text-lg font-bold text-white">{formatPrice(parseFloat(product.price.replace(/[^0-9.]/g, '')))}</p>
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                    // No suggestions available
+                    <div className="col-span-3 text-center py-8">
+                      <p className="text-white text-lg">Free shipping achieved! 🎉</p>
+                      <p className="text-gray-400 text-sm mt-2">No additional products needed</p>
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Shop Now Button */}
@@ -211,7 +298,7 @@ export default function CartPage() {
                     <span className="text-sm font-medium text-[#212121]">
                       {shippingInfo.isFreeShipping 
                         ? "Free Shipping Applied!" 
-                        : `You're $${amountForFreeShipping.toFixed(2)} away from Free Standard Shipping`
+                        : `You're $${Math.floor(amountForFreeShipping)} away from Free Standard Shipping`
                       }
                     </span>
                   </div>
@@ -224,13 +311,27 @@ export default function CartPage() {
                         />
                       </div>
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>$0</span>
-                        <span>${freeShippingThreshold}</span>
+                        <span>{formatPrice(0)}</span>
+                        <span>{formatPrice(freeShippingThreshold)}</span>
                       </div>
                     </>
                   )}
                 </div>
               )}
+
+              {/* Cart Items Summary */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Items in cart</span>
+                  <span className="text-sm font-medium text-gray-600">{cartItems.length} items</span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-sm text-gray-600">Total quantity</span>
+                  <span className="text-sm font-medium text-gray-600">
+                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)} pieces
+                  </span>
+                </div>
+              </div>
 
               {/* Cart Items */}
               <div className="space-y-6 mb-8">
@@ -249,20 +350,53 @@ export default function CartPage() {
 
                     {/* Product Details */}
                     <div className="flex-1 space-y-1">
-                      <h3 className="font-semibold text-[#212121]">{item.name}</h3>
-                      <p className="text-sm text-gray-600">{item.fit}</p>
-                      <p className="text-sm text-gray-600">
-                        {item.color} | {item.size}
-                      </p>
-                      <p className="font-bold text-[#212121]">{formatPrice(item.price)}</p>
+                      <h3 className="font-semibold text-[#212121]">
+                        {item.isBundle ? (
+                          <div className="flex items-center space-x-2">
+                            <Package className="h-4 w-4 text-green-600" />
+                            <span>{item.name} (Bundle)</span>
+                          </div>
+                        ) : (
+                          item.name
+                        )}
+                      </h3>
+                      
+                      {item.isBundle && item.bundleProducts && (
+                        <div className="text-xs text-gray-500 mb-2">
+                          <p>Includes: {item.bundleProducts.map(p => p.name).join(', ')}</p>
+                        </div>
+                      )}
+                      
+                      {!item.isBundle && (
+                        <>
+                          <p className="text-sm text-gray-600">{item.fit}</p>
+                          <p className="text-sm text-gray-600">
+                            {item.color} | {item.size}
+                          </p>
+                        </>
+                      )}
+                      
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500">
+                          {item.isBundle ? 'Bundle Price:' : 'Price:'} {formatPrice(item.price)} each
+                        </p>
+                        <p className="font-bold text-[#212121]">{formatPrice(item.price * item.quantity)} total</p>
+                      </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex flex-col items-end space-y-2">
                       <div className="flex items-center space-x-2">
-                        <button className="text-gray-400 hover:text-red-500">
-                          <Heart className="h-4 w-4" />
-                        </button>
+                        {!item.isBundle && (
+                          <button 
+                            onClick={() => handleWishlistToggle(item)}
+                            className={`hover:text-red-500 ${
+                              isInWishlist(item.id) ? 'text-red-500' : 'text-gray-400'
+                            }`}
+                          >
+                            <Heart className={`h-4 w-4 ${isInWishlist(item.id) ? 'fill-current' : ''}`} />
+                          </button>
+                        )}
                         <button className="text-gray-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -270,11 +404,17 @@ export default function CartPage() {
 
                       {/* Quantity Selector */}
                       <Select
-                        value={(item.quantity || 1).toString()}
-                        onValueChange={(value) => updateQuantity(item.id, Number.parseInt(value))}
+                        value={item.quantity.toString()}
+                        onValueChange={(value) => {
+                          const newQuantity = Number.parseInt(value);
+                          updateQuantity(item.id, newQuantity);
+                          showNotification(`${item.name} quantity updated to ${newQuantity}`);
+                        }}
                       >
                         <SelectTrigger className="w-20 h-8 text-sm">
-                          <SelectValue />
+                          <SelectValue>
+                            Qty: {item.quantity}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
@@ -383,10 +523,7 @@ export default function CartPage() {
                     {shippingInfo?.isFreeShipping ? "FREE" : formatPrice(shipping)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipment Promos at the Checkout</span>
-                  <span className="font-medium">$0</span>
-                </div>
+
                 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
